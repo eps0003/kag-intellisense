@@ -3,8 +3,8 @@ import * as util from "./util";
 import Manual from "./manual";
 import { type } from "os";
 
-const types = ["void", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64"];
-const hookRegex = new RegExp(`^((?:${types.join("|")})?\\s*\\w*)?$`);
+const primitives = ["void", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64"];
+const hookRegex = new RegExp(`^((?:${primitives.join("|")})?\\s*\\w*)?$`);
 
 export function activate(context: vscode.ExtensionContext) {
 	const manual = new Manual("D:/KAG/KAG dev/Manual/interface/");
@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
 				items.push(...manual.variables.map((x) => x.toCompletionItem()));
 				items.push(...manual.objects.map((x) => x.toCompletionItem()));
 				items.push(...util.getAllVariableNames(document).map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Variable)));
-				items.push(...types.map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Keyword)));
+				items.push(...primitives.map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Keyword)));
 			}
 
 			return items;
