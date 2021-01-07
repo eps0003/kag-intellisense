@@ -10,14 +10,19 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:kag-intellisense.helloWorld"
+		"onLanguage:angelscript"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
-		"commands": [
+		"languages": [
 			{
-				"command": "kag-intellisense.helloWorld",
-				"title": "Hello World"
+				"id": "angelscript",
+				"aliases": [
+					"AngelScript"
+				],
+				"extensions": [
+					".as"
+				]
 			}
 		]
 	},
@@ -41,5 +46,8 @@
 		"mocha": "^8.1.3",
 		"typescript": "^4.1.2",
 		"vscode-test": "^1.4.1"
+	},
+	"dependencies": {
+		"fs": "0.0.1-security"
 	}
 }

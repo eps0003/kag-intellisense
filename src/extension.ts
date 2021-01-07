@@ -1,27 +1,46 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
+import * as vscode from "vscode";
+import * as util from "./util";
+import Manual from "./manual";
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
+const types = ["void", "int8", "int16", "int", "int64", "uint8", "uint16", "uint", "uint64", "s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64"];
+const hookRegex = new RegExp(`^((?:${types.join("|")})?\\s*\\w*)?$`);
+
 export function activate(context: vscode.ExtensionContext) {
+	const manual = new Manual("D:/KAG/KAG dev/Manual/interface/");
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "kag-intellisense" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('kag-intellisense.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from KAG IntelliSense!');
+	vscode.languages.registerSignatureHelpProvider("angelscript", {
+		provideSignatureHelp(document, position, token, context) {
+			return null;
+		},
 	});
 
-	context.subscriptions.push(disposable);
+	vscode.languages.registerCompletionItemProvider("angelscript", {
+		provideCompletionItems(document, position, token, context) {
+			// Get text on current line up to cursor
+			let text = document.lineAt(position.line).text.substr(0, position.character);
+
+			// Don't show completion items if cursor is in a comment
+			if (util.isCursorInComment(document, position)) {
+				return null;
+			}
+
+			const items: vscode.CompletionItem[] = [];
+
+			if (hookRegex.test(text)) {
+				items.push(...manual.hooks.map((x) => x.toCompletionItem()));
+			}
+
+			if (/^(?<=^|[^\w\s)@.])\s*\w*$/.test(text)) {
+				items.push(...manual.enums.map((x) => x.toCompletionItem()));
+				items.push(...manual.functions.map((x) => x.toCompletionItem()));
+				items.push(...manual.variables.map((x) => x.toCompletionItem()));
+				items.push(...manual.objects.map((x) => x.toCompletionItem()));
+				items.push(...util.getAllVariableNames(document).map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Variable)));
+			}
+
+			return items;
+		},
+	});
 }
 
-// this method is called when your extension is deactivated
 export function deactivate() {}
