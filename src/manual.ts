@@ -31,6 +31,24 @@ export default class Manual {
 		this.initVariables();
 	}
 
+	getObject(name: string): KAGObject | null {
+		for (const obj of this.objects) {
+			if (obj.name === name) {
+				return obj;
+			}
+		}
+		return null;
+	}
+
+	getFunction(name: string): Func | null {
+		for (const func of this.functions) {
+			if (func.name === name) {
+				return func;
+			}
+		}
+		return null;
+	}
+
 	private initObjects() {
 		glob(this.path + "Objects/*.txt", (err, matches) => {
 			if (err) {

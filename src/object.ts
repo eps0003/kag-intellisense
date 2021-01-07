@@ -17,6 +17,24 @@ export default class KAGObject {
 		this.parseFile(path);
 	}
 
+	getMethod(name: string): Method | null {
+		for (const method of this.methods) {
+			if (method.name === name) {
+				return method;
+			}
+		}
+		return null;
+	}
+
+	getProperty(name: string): Property | null {
+		for (const property of this.properties) {
+			if (property.name === name) {
+				return property;
+			}
+		}
+		return null;
+	}
+
 	toString(): string {
 		return this.name;
 	}
@@ -34,7 +52,7 @@ export default class KAGObject {
 			const lines = data.split("\n");
 			for (const line of lines) {
 				const text = line.trim();
-				if (!text || text.startsWith("--")) {
+				if (!text || text.startsWith("--") || text.startsWith("<constructor>")) {
 					continue;
 				}
 

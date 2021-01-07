@@ -19,14 +19,20 @@ export function activate(context: vscode.ExtensionContext) {
 			// Get text on current line up to cursor
 			let text = document.lineAt(position.line).text.substr(0, position.character);
 
-			// Don't show completion items if cursor is in a comment or string
-			if (util.isCursorInComment(document, position) || util.isCursorInString(document, position)) {
+			// Don't show completion items if cursor is in a string or comment
+			if (util.isCursorInString(document, position) || util.isCursorInComment(document, position)) {
 				return null;
 			}
 
 			const items: vscode.CompletionItem[] = [];
 
-			if (hookRegex.test(text)) {
+			if (/\.\w*$/.test(text)) {
+				const obj = util.parseChain(document, position, manual);
+				if (obj) {
+					items.push(...obj.methods.map((x) => x.toCompletionItem()));
+					items.push(...obj.properties.map((x) => x.toCompletionItem()));
+				}
+			} else if (hookRegex.test(text)) {
 				items.push(...manual.hooks.map((x) => x.toCompletionItem()));
 			}
 

@@ -14,6 +14,6 @@ export default class Property {
 	}
 
 	toCompletionItem(): vscode.CompletionItem {
-		return new vscode.CompletionItem(this.toString(), vscode.CompletionItemKind.Property);
+		return new vscode.CompletionItem(this.toString(), vscode.CompletionItemKind.Field);
 	}
 }
