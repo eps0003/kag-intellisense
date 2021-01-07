@@ -19,8 +19,8 @@ export function activate(context: vscode.ExtensionContext) {
 			// Get text on current line up to cursor
 			let text = document.lineAt(position.line).text.substr(0, position.character);
 
-			// Don't show completion items if cursor is in a comment
-			if (util.isCursorInComment(document, position)) {
+			// Don't show completion items if cursor is in a comment or string
+			if (util.isCursorInComment(document, position) || util.isCursorInString(document, position)) {
 				return null;
 			}
 

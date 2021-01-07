@@ -16,16 +16,29 @@ export function sanitise(document: vscode.TextDocument): string {
 }
 
 export function isCursorInComment(document: vscode.TextDocument, position: vscode.Position): boolean {
-	const lineAtCursor = document.lineAt(position.line).text.substr(0, position.character);
+	const lineToCursor = document.lineAt(position.line).text.substr(0, position.character);
 	const textToCursor = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
 
 	// Single line comment
-	if (/\/\/.*$/g.test(lineAtCursor)) {
+	if (/\/\/.*$/g.test(lineToCursor)) {
 		return true;
 	}
 
 	// Multi line comment
 	if (/(?:\/\*)([^\/])*$/.test(textToCursor)) {
+		return true;
+	}
+
+	return false;
+}
+
+export function isCursorInString(document: vscode.TextDocument, position: vscode.Position): boolean {
+	const lineToCursor = document.lineAt(position.line).text.substr(0, position.character);
+
+	const regex = /(?<=.*)("(?:[^"\\]|\\.)*("|$)|'(?:[^'\\]|\\.)*('|$))/g;
+	const match = lineToCursor.match(regex);
+
+	if (match && lineToCursor.endsWith(match[match.length - 1])) {
 		return true;
 	}
 
