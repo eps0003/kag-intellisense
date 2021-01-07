@@ -16,9 +16,16 @@ export function sanitise(document: vscode.TextDocument): string {
 }
 
 export function isCursorInComment(document: vscode.TextDocument, position: vscode.Position): boolean {
-	const text = document.lineAt(position.line).text.substr(0, position.character);
+	const lineAtCursor = document.lineAt(position.line).text.substr(0, position.character);
+	const textToCursor = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
 
-	if (/\/\/.*$/g.test(text)) {
+	// Single line comment
+	if (/\/\/.*$/g.test(lineAtCursor)) {
+		return true;
+	}
+
+	// Multi line comment
+	if (/(?:\/\*)([^\/])*$/.test(textToCursor)) {
 		return true;
 	}
 
