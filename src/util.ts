@@ -48,7 +48,7 @@ export function isCursorInString(document: vscode.TextDocument, position: vscode
 
 export function getAllVariableNames(document: vscode.TextDocument): string[] {
 	const text = sanitise(document.getText());
-	const regex = /(?:^|[(,\n\s])(?:\w+\s+)?(?!return)\w+(?:@?(?:\[\])+|<.+>)?@?[^\S\n]+(\w+)[^\w(.]/g;
+	const regex = /(?:^|[(,\n\s])(?!return|else)(?:const\s+)?(?:\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?(?:\s+&(?:in|out|inout))?[^\S\n]+(\w+)[^\w(.]/g;
 	const vars = new Set<string>();
 
 	let match;
@@ -111,7 +111,7 @@ export function getGlobalScriptVariables(document: vscode.TextDocument): Variabl
 	const text = sanitise(document.getText());
 	const lines = text.split("\n");
 
-	const regex = /^(?:const )?(\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?\s+(\w+)/;
+	const regex = /^(?:const\s+)?(\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?\s+(\w+)/;
 
 	for (const line of lines) {
 		const match = regex.exec(line);
@@ -142,7 +142,7 @@ export function findVariableType(document: vscode.TextDocument, position: vscode
 
 	// Get last match
 	let match;
-	const regex = new RegExp(`(?:^|[(,\\n\\s])(?:const\s+)?(\\w+(?:@?(?:\\[\\])+)?|array(?:<.+>))@?\\s+${varName}\\b`, "g");
+	const regex = new RegExp(`(?:^|[(,\\n\\s])(?:const\s+)?(\\w+(?:@?(?:\\[\\])+)?|array(?:<.+>))@?(?:\\s+&(?:in|out|inout))?\\s+${varName}\\b`, "g");
 	while ((match = regex.exec(text))) {
 		last = match[1];
 	}

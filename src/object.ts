@@ -58,7 +58,7 @@ export default class KAGObject {
 
 				//method
 				{
-					const regex = /^(\S+)\s+(?:::)?(\S+)\((.*)\)$/;
+					const regex = /^(\S+)\s+(?:::)?(\S+)\((.*)\)(?:\s+const)?$/;
 					const match = text.match(regex);
 					if (match) {
 						const returnType = match[1];

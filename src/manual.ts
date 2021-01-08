@@ -143,7 +143,7 @@ export default class Manual {
 					continue;
 				}
 
-				const regex = /^(\S+)\s+(?:(\S+?)::)?(?:::)?(\S+)\((.*)\)$/;
+				const regex = /^(\S+)\s+(?:(\S+?)::)?(?:::)?(\S+)\((.*)\)(?:\s+const)?$/;
 				const match = text.match(regex);
 				if (match) {
 					const returnType = match[1];
