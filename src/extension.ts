@@ -38,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
 					items.push(...manual.hooks.map((x) => x.toCompletionItem()));
 				}
 
-				if (/(?<=^|[^\w\s)@.])\s*\w*$/.test(text)) {
+				if (/^|\s\S*$/.test(text)) {
 					items.push(...manual.enums.map((x) => x.toCompletionItem()));
 					items.push(...manual.functions.map((x) => x.toCompletionItem()));
 					items.push(...manual.variables.map((x) => x.toCompletionItem()));
