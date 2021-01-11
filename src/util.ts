@@ -46,17 +46,35 @@ export function isCursorInString(document: vscode.TextDocument, position: vscode
 	return false;
 }
 
-export function getAllVariableNames(document: vscode.TextDocument): string[] {
-	const text = sanitise(document.getText());
-	const regex = /(?:^|[(,\n\s])(?!return|else)(?:const\s+)?(?:\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?(?:\s+&(?:in|out|inout))?[^\S\n]+(\w+)[^\w(.]/g;
-	const vars = new Set<string>();
+export function getVariableNames(document: vscode.TextDocument, position: vscode.Position): string[] {
+	let textToCursor = sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
 
-	let match;
-	while ((match = regex.exec(text))) {
-		vars.add(match[1]);
+	// Remove sections of code out of scope
+	{
+		const regex = /{[^{]*?}/g;
+		while (regex.test(textToCursor)) {
+			textToCursor = textToCursor.replace(regex, "");
+		}
 	}
 
-	return Array.from(vars);
+	// Check if cursor is within a function
+	if (/{/g.test(textToCursor)) {
+		// Get variables in scope
+		const regex = /(?:^|[(,\n\s])(?!return|else)(?:const\s+)?(?:\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?(?:\s+&(?:in|out|inout))?[^\S\n]+(\w+)[^\w(.]/g;
+		const vars = new Set<string>();
+
+		let match;
+		while ((match = regex.exec(textToCursor))) {
+			vars.add(match[1]);
+		}
+
+		return Array.from(vars);
+	}
+
+	// Return global variables
+	return getGlobalScriptVariables(document)
+		.map((x) => x.name)
+		.filter(filterUnique);
 }
 
 export function getTrueType(type: string): string {
@@ -125,31 +143,31 @@ export function getGlobalScriptVariables(document: vscode.TextDocument): Variabl
 }
 
 export function findVariableType(document: vscode.TextDocument, position: vscode.Position, varName: string): string | null {
-	let text = "";
+	let textToCursor = sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
 
-	// Get scope (really scuffed and not complete)
-	const textToCursor = sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
-	const lines = textToCursor.split("\n");
-	for (let i = lines.length - 1; i >= 0; i--) {
-		const line = lines[i];
-		if (/^\w/.test(line)) {
-			text = lines.slice(i, lines.length).join("\n");
-			break;
+	// Remove sections of code out of scope
+	{
+		const regex = /{[^{]*?}/g;
+		while (regex.test(textToCursor)) {
+			textToCursor = textToCursor.replace(regex, "");
 		}
 	}
 
-	let last: string | undefined;
+	// Check if cursor is within a function
+	if (/{/g.test(textToCursor)) {
+		let last: string | undefined;
 
-	// Get last match
-	let match;
-	const regex = new RegExp(`(?:^|[(,\\n\\s])(?:const\s+)?(\\w+(?:@?(?:\\[\\])+)?|array(?:<.+>))@?(?:\\s+&(?:in|out|inout))?\\s+${varName}\\b`, "g");
-	while ((match = regex.exec(text))) {
-		last = match[1];
-	}
+		// Get last variable declaration
+		let match;
+		const regex = new RegExp(`(?:^|[(,\\n\\s])(?:const\s+)?(\\w+(?:@?(?:\\[\\])+)?|array(?:<.+>))@?(?:\\s+&(?:in|out|inout))?\\s+${varName}\\b`, "g");
+		while ((match = regex.exec(textToCursor))) {
+			last = match[1];
+		}
 
-	// Return last match
-	if (last) {
-		return getTrueType(last);
+		// Return type of last match
+		if (last) {
+			return getTrueType(last);
+		}
 	}
 
 	// Look for match in global script variables
@@ -210,4 +228,8 @@ export function parseChain(document: vscode.TextDocument, position: vscode.Posit
 	}
 
 	return obj;
+}
+
+export function filterUnique(value: any, index: number, arr: Array<any>): boolean {
+	return arr.indexOf(value) === index;
 }
