@@ -1,7 +1,6 @@
 import * as vscode from "vscode";
 import * as util from "./util";
 import Manual from "./manual";
-import { type } from "os";
 
 const primitives = ["void", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64"];
 const hookRegex = new RegExp(`^((?:${primitives.join("|")})?\\s*|\\w*)?$`);
@@ -39,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
 					items.push(...manual.hooks.map((x) => x.toCompletionItem()));
 				}
 
-				if (/^(?<=^|[^\w\s)@.])\s*\w*$/.test(text)) {
+				if (/(?<=^|[^\w\s)@.])\s*\w*$/.test(text)) {
 					items.push(...manual.enums.map((x) => x.toCompletionItem()));
 					items.push(...manual.functions.map((x) => x.toCompletionItem()));
 					items.push(...manual.variables.map((x) => x.toCompletionItem()));

@@ -103,18 +103,18 @@ export function getChain(document: vscode.TextDocument, position: vscode.Positio
 
 	{
 		// Remove things inside brackets
-		const regex = /(\()[^\)].*?(\)(?:[^\)]|$))/;
+		const regex = /\((?:\(\)|[^(])+?\)/;
 		while (regex.test(lineToCursor)) {
-			lineToCursor = lineToCursor.replace(regex, "$1$2");
+			lineToCursor = lineToCursor.replace(regex, "()");
 		}
 	}
 
 	{
 		// Get chain string
-		const regex = /\s(\S*)$/;
+		const regex = /(?:\(\)|[^\s(])+?$/;
 		const match = lineToCursor.match(regex);
 		if (match) {
-			lineToCursor = match[1];
+			lineToCursor = match[0];
 		}
 	}
 
@@ -145,8 +145,8 @@ export function getGlobalScriptVariables(document: vscode.TextDocument): Variabl
 export function findVariableType(document: vscode.TextDocument, position: vscode.Position, varName: string): string | null {
 	let textToCursor = sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
 
-	// Remove sections of code out of scope
 	{
+		// Remove sections of code out of scope
 		const regex = /{[^{]*?}/g;
 		while (regex.test(textToCursor)) {
 			textToCursor = textToCursor.replace(regex, "");
