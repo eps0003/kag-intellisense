@@ -22,7 +22,8 @@
 				],
 				"extensions": [
 					".as"
-				]
+				],
+				"configuration": "./language-configuration.json"
 			}
 		]
 	},
