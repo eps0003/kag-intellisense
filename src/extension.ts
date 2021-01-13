@@ -29,10 +29,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 				const [chain, args] = chainArgs;
 				const subroutine = util.parseChainForLastSubroutine(chain, document, position, manual);
-				if (subroutine) {
-					help.signatures = subroutine.toSignatureInformation();
-					help.activeParameter = args.length - 1;
+				if (!subroutine) {
+					return null;
 				}
+
+				help.signatures = subroutine.toSignatureInformation();
+				help.activeParameter = args.length - 1;
 
 				return help;
 			},
