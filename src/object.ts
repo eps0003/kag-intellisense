@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as vscode from "vscode";
+import Constructor from "./constructor";
 import Declaration from "./declaration";
 import Method from "./method";
 import Param from "./param";
@@ -7,6 +8,7 @@ import Property from "./property";
 import Signature from "./signature";
 
 export default class KAGObject extends Declaration {
+	construct: Constructor | null = null;
 	private _properties: Property[] = [];
 	private _methods: { [name: string]: Method } = {};
 
@@ -54,8 +56,29 @@ export default class KAGObject extends Declaration {
 			const lines = data.split("\n");
 			for (const line of lines) {
 				const text = line.trim();
-				if (!text || text.startsWith("--") || text.startsWith("<constructor>")) {
+				if (!text || text.startsWith("--")) {
 					continue;
+				}
+
+				{
+					const regex = /^<constructor>\((.*)\)$/;
+					const match = text.match(regex);
+					if (match) {
+						const params = match[1]
+							.trim()
+							.split(/\s*,\s*/g)
+							.filter(Boolean)
+							.map((str) => {
+								return new Param(str);
+							});
+
+						if (!this.construct) {
+							this.construct = new Constructor(this.name);
+						}
+
+						this.construct.addSignature(new Signature(params));
+						continue;
+					}
 				}
 
 				//method
