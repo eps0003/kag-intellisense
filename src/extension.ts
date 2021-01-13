@@ -17,11 +17,6 @@ export function activate(context: vscode.ExtensionContext) {
 		"angelscript",
 		{
 			provideSignatureHelp(document, position, token, context) {
-				// Don't show signature help if cursor is in a string or comment
-				if (util.isCursorInString(document, position) || util.isCursorInComment(document, position)) {
-					return null;
-				}
-
 				const chainArgs = util.getChainWithArgs(document, position);
 				if (!chainArgs) {
 					return null;

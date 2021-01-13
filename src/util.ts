@@ -4,22 +4,67 @@ import KAGObject from "./object";
 import Subroutine from "./subroutine";
 import Variable from "./variable";
 
-export function sanitise(text: string): string {
+export function removeComments(text: string): string {
 	// Remove single line comments
 	text = text.replace(/\s*\/\/.*/g, "");
 
-	// Remove contents of multi line comments
+	// Remove multi line comments
 	text = text.replace(/\/\*(?:.|\n|\r)*?(?:\*\/|$)/g, "");
 
+	return text;
+}
+
+export function sanitise(text: string): string {
 	// Remove contents of strings
-	text = text.replace(/(?<=.*)("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, `""`);
+	text = text.replace(/(?<=.*)("(?:[^"\\]|\\.)*(?:"|$)|'(?:[^'\\]|\\.)*(?:'|$))/g, (x) => {
+		// Get quote type
+		const quote = x.charAt(0);
+
+		const closed = x.endsWith(quote);
+
+		// Remove quotes
+		x = x.slice(1, closed ? -1 : undefined);
+
+		const len = x.length;
+		return quote + (len > 0 ? " ".repeat(len) : "") + (closed ? quote : "");
+	});
+
+	// Remove single line comments
+	text = text.replace(/\/\/.*/g, (x) => {
+		const len = x.length - 2;
+		return "//" + (len > 0 ? " ".repeat(len) : "");
+	});
+
+	// Remove contents of multi line comments
+	text = text.replace(/\/\*(?:.|\n|\r)*?(?:\*\/|$)/g, (x) => {
+		// Remove /*
+		x = x.slice(2);
+
+		// Remove */ if there is one
+		const closed = x.endsWith("*/");
+		if (closed) {
+			x = x.slice(0, -2);
+		}
+
+		// Replace contents of each line
+		x = x
+			.split("\n")
+			.map((line) => {
+				const len = line.length;
+				return len > 0 ? " ".repeat(len) : "";
+			})
+			.join("\n");
+
+		// Append /* */ and return sanitised comment
+		return "/*" + x + (closed ? "*/" : "");
+	});
 
 	return text;
 }
 
 export function isCursorInComment(document: vscode.TextDocument, position: vscode.Position): boolean {
-	const lineToCursor = document.lineAt(position.line).text.substr(0, position.character);
-	const textToCursor = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
+	const lineToCursor = sanitise(document.lineAt(position.line).text.substr(0, position.character));
+	const textToCursor = sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
 
 	// Single line comment
 	if (/\/\/.*$/g.test(lineToCursor)) {
@@ -48,7 +93,7 @@ export function isCursorInString(document: vscode.TextDocument, position: vscode
 }
 
 export function getVariableNames(document: vscode.TextDocument, position: vscode.Position): string[] {
-	let textToCursor = sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
+	let textToCursor = removeComments(sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position))));
 
 	// Remove sections of code out of scope
 	{
@@ -102,7 +147,7 @@ export function getTrueType(type: string): string {
 export function getGlobalScriptVariables(document: vscode.TextDocument): Variable[] {
 	const vars: Variable[] = [];
 
-	const text = sanitise(document.getText());
+	const text = removeComments(sanitise(document.getText()));
 	const lines = text.split("\n");
 
 	const regex = /^(?:const\s+)?(\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?\s+(\w+)\s*(?:;|=)/;
@@ -144,7 +189,7 @@ export function getChain(document: vscode.TextDocument, position: vscode.Positio
 }
 
 export function getChainWithArgs(document: vscode.TextDocument, position: vscode.Position): [string[], string[]] | null {
-	let lineToCursor = document.lineAt(position.line).text.substr(0, position.character).trim();
+	let lineToCursor = removeComments(sanitise(document.lineAt(position.line).text.substr(0, position.character))).trim();
 
 	// Check if inside method brackets
 	if (/\([^)]*$/.test(lineToCursor)) {
@@ -176,7 +221,7 @@ export function getChainWithArgs(document: vscode.TextDocument, position: vscode
 }
 
 export function findVariableType(document: vscode.TextDocument, position: vscode.Position, varName: string): string | null {
-	let textToCursor = sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
+	let textToCursor = removeComments(sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position))));
 
 	{
 		// Remove sections of code out of scope
