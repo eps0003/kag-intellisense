@@ -227,9 +227,15 @@ export function parseChainForLastObject(chain: string[], document: vscode.TextDo
 			text = text.slice(0, -2);
 
 			if (i === 0) {
-				// Function
-				const func = manual.getFunction(null, text);
-				type = func ? getTrueType(func.type) : null;
+				const kagObject = manual.getObject(text);
+				if (kagObject && kagObject.construct) {
+					// Constructor
+					type = kagObject.type;
+				} else {
+					// Function
+					const func = manual.getFunction(null, text);
+					type = func ? getTrueType(func.type) : null;
+				}
 			} else if (obj) {
 				// Method
 				const method = obj.getMethod(text);
@@ -270,15 +276,22 @@ export function parseChainForLastSubroutine(chain: string[], document: vscode.Te
 			text = text.slice(0, -2);
 
 			if (i === 0) {
-				// Function
-				const match = text.match(/(?:(\w+)::)?(\w+)/);
-				if (match) {
-					const namespace = match[1] || null;
-					const name = match[2];
+				const kagObject = manual.getObject(text);
+				if (kagObject && kagObject.construct) {
+					// Constructor
+					type = kagObject.type;
+					subroutine = kagObject.construct;
+				} else {
+					// Function
+					const match = text.match(/(?:(\w+)::)?(\w+)/);
+					if (match) {
+						const namespace = match[1] || null;
+						const name = match[2];
 
-					const func = manual.getFunction(namespace, name);
-					type = func ? getTrueType(func.type) : null;
-					subroutine = func;
+						const func = manual.getFunction(namespace, name);
+						type = func ? getTrueType(func.type) : null;
+						subroutine = func;
+					}
 				}
 			} else if (obj) {
 				// Method
