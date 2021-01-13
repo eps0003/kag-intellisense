@@ -8,7 +8,10 @@ const hookRegex = new RegExp(`^((${primitives.join("|")})\\s*)?\\w*$`);
 const help = new vscode.SignatureHelp();
 
 export function activate(context: vscode.ExtensionContext) {
-	const manual = new Manual("D:/KAG/KAG dev/Manual/interface/");
+	const manual = Manual.getManual();
+	if (!manual) {
+		return;
+	}
 
 	vscode.languages.registerSignatureHelpProvider(
 		"angelscript",

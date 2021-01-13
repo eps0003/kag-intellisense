@@ -25,7 +25,16 @@
 				],
 				"configuration": "./language-configuration.json"
 			}
-		]
+		],
+		"configuration": {
+			"title": "KAG AngelScript IntelliSense",
+			"properties": {
+				"KAG.manual": {
+					"type": "string",
+					"description": "Location of Manual folder in KAG directory. Requires a restart to take effect."
+				}
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",

@@ -1,5 +1,7 @@
 import * as fs from "fs";
 import { glob } from "glob";
+import * as path from "path";
+import * as vscode from "vscode";
 import Enum from "./enum";
 import Func from "./function";
 import Hook from "./hook";
@@ -212,5 +214,33 @@ export default class Manual {
 				}
 			}
 		});
+	}
+
+	static getManual(): Manual | null {
+		const manualPath = this.getManualPath();
+		if (!manualPath) {
+			vscode.window.showInformationMessage("KAG AngelScript IntelliSense was unable to start because an invalid/nonexistent path to the KAG Manual was provided", "Set Path").then((value) => {
+				if (value) {
+					vscode.commands.executeCommand("workbench.action.openSettings", "KAG.manual");
+				}
+			});
+			return null;
+		}
+
+		return new Manual(manualPath);
+	}
+
+	private static getManualPath(): string | null {
+		const manualPath: string = vscode.workspace.getConfiguration("KAG").manual;
+		if (!manualPath) {
+			return null;
+		}
+
+		const fullPath = path.join(manualPath, "interface/");
+		if (!fs.existsSync(fullPath)) {
+			return null;
+		}
+
+		return fullPath;
 	}
 }
