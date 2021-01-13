@@ -66,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 					items.push(...manual.hooks.map((x) => x.toCompletionItem()));
 				}
 
-				if (/(^|[\s,(])\w*$/.test(lineToCursor)) {
+				if (/(^|[\s,(:])\w*$/.test(lineToCursor)) {
 					items.push(...manual.enums.map((x) => x.toCompletionItem()));
 					items.push(...manual.functions.map((x) => x.toCompletionItem()));
 					items.push(...manual.variables.map((x) => x.toCompletionItem()));
