@@ -1,38 +1,40 @@
-import * as vscode from "vscode";
 import * as fs from "fs";
-import Param from "./param";
+import * as vscode from "vscode";
+import Declaration from "./declaration";
 import Method from "./method";
+import Param from "./param";
 import Property from "./property";
+import Signature from "./signature";
 
-export default class KAGObject {
-	name: string;
-	properties: Property[];
-	methods: Method[];
+export default class KAGObject extends Declaration {
+	private _properties: Property[] = [];
+	private _methods: { [name: string]: Method } = {};
 
 	constructor(name: string, path: string) {
-		this.name = name;
-		this.properties = [];
-		this.methods = [];
+		super(name, name);
 
 		this.parseFile(path);
 	}
 
 	getMethod(name: string): Method | null {
-		for (const method of this.methods) {
-			if (method.name === name) {
-				return method;
-			}
-		}
-		return null;
+		return this._methods[name];
 	}
 
 	getProperty(name: string): Property | null {
-		for (const property of this.properties) {
+		for (const property of this._properties) {
 			if (property.name === name) {
 				return property;
 			}
 		}
 		return null;
+	}
+
+	get properties(): Property[] {
+		return this._properties;
+	}
+
+	get methods(): Method[] {
+		return Object.values(this._methods);
 	}
 
 	toString(): string {
@@ -72,7 +74,11 @@ export default class KAGObject {
 								return new Param(type, name);
 							});
 
-						this.methods.push(new Method(returnType, name, params));
+						if (!this._methods.hasOwnProperty(name)) {
+							this._methods[name] = new Method(this, returnType, name);
+						}
+
+						this._methods[name].addSignature(new Signature(params));
 						continue;
 					}
 				}
@@ -85,7 +91,7 @@ export default class KAGObject {
 						const type = match[1];
 						const name = match[2];
 
-						this.properties.push(new Property(type, name));
+						this._properties.push(new Property(this, type, name));
 						continue;
 					}
 				}

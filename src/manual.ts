@@ -1,28 +1,24 @@
 import * as fs from "fs";
 import { glob } from "glob";
-import KAGObject from "./object";
-import Hook from "./hook";
-import Variable from "./variable";
-import Func from "./function";
 import Enum from "./enum";
+import Func from "./function";
+import Hook from "./hook";
+import KAGObject from "./object";
 import Param from "./param";
+import Signature from "./signature";
+import Variable from "./variable";
 
 export default class Manual {
-	path: string;
+	private _path: string;
 
-	enums: Enum[];
-	functions: Func[];
-	hooks: Hook[];
-	objects: KAGObject[];
-	variables: Variable[];
+	private _enums: Enum[] = [];
+	private _functions: { [name: string]: Func } = {};
+	private _hooks: Hook[] = [];
+	private _objects: KAGObject[] = [];
+	private _variables: Variable[] = [];
 
 	constructor(path: string) {
-		this.path = path;
-		this.enums = [];
-		this.functions = [];
-		this.hooks = [];
-		this.objects = [];
-		this.variables = [];
+		this._path = path;
 
 		this.initEnums();
 		this.initFunctions();
@@ -31,8 +27,28 @@ export default class Manual {
 		this.initVariables();
 	}
 
+	get enums(): Enum[] {
+		return this._enums;
+	}
+
+	get functions(): Func[] {
+		return Object.values(this._functions);
+	}
+
+	get hooks(): Hook[] {
+		return this._hooks;
+	}
+
+	get objects(): KAGObject[] {
+		return this._objects;
+	}
+
+	get variables(): Variable[] {
+		return this._variables;
+	}
+
 	getObject(name: string): KAGObject | null {
-		for (const obj of this.objects) {
+		for (const obj of this._objects) {
 			if (obj.name === name) {
 				return obj;
 			}
@@ -40,17 +56,13 @@ export default class Manual {
 		return null;
 	}
 
-	getFunction(name: string): Func | null {
-		for (const func of this.functions) {
-			if (func.name === name) {
-				return func;
-			}
-		}
-		return null;
+	getFunction(namespace: string | null, name: string): Func | null {
+		const key = `${namespace || ""}::${name}`;
+		return this._functions[key];
 	}
 
 	private initObjects() {
-		glob(this.path + "Objects/*.txt", (err, matches) => {
+		glob(this._path + "Objects/*.txt", (err, matches) => {
 			if (err) {
 				throw err;
 			}
@@ -66,13 +78,13 @@ export default class Manual {
 					continue;
 				}
 
-				this.objects.push(new KAGObject(name, path));
+				this._objects.push(new KAGObject(name, path));
 			}
 		});
 	}
 
 	private initHooks() {
-		fs.readFile(this.path + "Hooks.txt", "utf8", (err, data) => {
+		fs.readFile(this._path + "Hooks.txt", "utf8", (err, data) => {
 			if (err) {
 				return;
 			}
@@ -98,14 +110,14 @@ export default class Manual {
 							return new Param(type, name);
 						});
 
-					this.hooks.push(new Hook(returnType, name, params));
+					this._hooks.push(new Hook(returnType, name, new Signature(params)));
 				}
 			}
 		});
 	}
 
 	private initVariables() {
-		fs.readFile(this.path + "Variables.txt", "utf8", (err, data) => {
+		fs.readFile(this._path + "Variables.txt", "utf8", (err, data) => {
 			if (err) {
 				return;
 			}
@@ -120,18 +132,18 @@ export default class Manual {
 				const regex = /^(?:(\S+)::)?(\S+)\s+(\S+)$/;
 				const match = text.match(regex);
 				if (match) {
-					const namespace = match[1];
+					const namespace = match[1] || null;
 					const type = match[2];
 					const name = match[3];
 
-					this.variables.push(new Variable(namespace, type, name));
+					this._variables.push(new Variable(namespace, type, name));
 				}
 			}
 		});
 	}
 
 	private initFunctions() {
-		fs.readFile(this.path + "Functions.txt", "utf8", (err, data) => {
+		fs.readFile(this._path + "Functions.txt", "utf8", (err, data) => {
 			if (err) {
 				return;
 			}
@@ -147,9 +159,9 @@ export default class Manual {
 				const match = text.match(regex);
 				if (match) {
 					const returnType = match[1];
-					const namespace = match[2];
+					const namespace = match[2] || null;
 					const name = match[3];
-					const params = match[3]
+					const params = match[4]
 						.trim()
 						.split(/\s*,\s*/g)
 						.filter(Boolean)
@@ -158,14 +170,20 @@ export default class Manual {
 							return new Param(type, name);
 						});
 
-					this.functions.push(new Func(namespace, returnType, name, params));
+					const key = `${namespace || ""}::${name}`;
+
+					if (!this._functions.hasOwnProperty(key)) {
+						this._functions[key] = new Func(namespace, returnType, name);
+					}
+
+					this._functions[key].addSignature(new Signature(params));
 				}
 			}
 		});
 	}
 
 	private initEnums() {
-		fs.readFile(this.path + "Enums.txt", "utf8", (err, data) => {
+		fs.readFile(this._path + "Enums.txt", "utf8", (err, data) => {
 			if (err) {
 				return;
 			}
@@ -189,7 +207,7 @@ export default class Manual {
 				if (match) {
 					const name = match[1];
 
-					this.enums.push(new Enum(namespace, name));
+					this._enums.push(new Enum(namespace, name));
 					continue;
 				}
 			}

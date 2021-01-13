@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import Manual from "./manual";
 import KAGObject from "./object";
+import Subroutine from "./subroutine";
 import Variable from "./variable";
 
 export function sanitise(text: string): string {
@@ -98,8 +99,27 @@ export function getTrueType(type: string): string {
 	return type;
 }
 
+export function getGlobalScriptVariables(document: vscode.TextDocument): Variable[] {
+	const vars: Variable[] = [];
+
+	const text = sanitise(document.getText());
+	const lines = text.split("\n");
+
+	const regex = /^(?:const\s+)?(\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?\s+(\w+)\s*(?:;|=)/;
+
+	for (const line of lines) {
+		const match = regex.exec(line);
+		if (match) {
+			const type = getTrueType(match[1]);
+			const name = match[2];
+			vars.push(new Variable(null, type, name));
+		}
+	}
+	return vars;
+}
+
 export function getChain(document: vscode.TextDocument, position: vscode.Position): string[] {
-	let lineToCursor = document.lineAt(position.line).text.substr(0, position.character);
+	let lineToCursor = document.lineAt(position.line).text.substr(0, position.character).trim();
 
 	{
 		// Remove things inside brackets
@@ -123,23 +143,36 @@ export function getChain(document: vscode.TextDocument, position: vscode.Positio
 	return chain;
 }
 
-export function getGlobalScriptVariables(document: vscode.TextDocument): Variable[] {
-	const vars: Variable[] = [];
+export function getChainWithArgs(document: vscode.TextDocument, position: vscode.Position): [string[], string[]] | null {
+	let lineToCursor = document.lineAt(position.line).text.substr(0, position.character).trim();
 
-	const text = sanitise(document.getText());
-	const lines = text.split("\n");
+	// Check if inside method brackets
+	if (/\([^)]*$/.test(lineToCursor)) {
+		{
+			// Remove things inside brackets
+			const regex = /\((?:\(\)|[^(])+?\)/;
+			while (regex.test(lineToCursor)) {
+				lineToCursor = lineToCursor.replace(regex, "()");
+			}
+		}
 
-	const regex = /^(?:const\s+)?(\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?\s+(\w+)/;
+		{
+			// Get chain string
+			const regex = /((?:\(\)|[^(, ])*)\(((?:\(\)|[^(])*?)$/;
+			const match = lineToCursor.match(regex);
+			if (match) {
+				lineToCursor = match[1];
+				const args = match[2].split(/\s*,\s*/);
 
-	for (const line of lines) {
-		const match = regex.exec(line);
-		if (match) {
-			const type = getTrueType(match[1]);
-			const name = match[2];
-			vars.push(new Variable(null, type, name));
+				const chain = lineToCursor.split(".");
+				chain[chain.length - 1] += "()";
+
+				return [chain, args];
+			}
 		}
 	}
-	return vars;
+
+	return null;
 }
 
 export function findVariableType(document: vscode.TextDocument, position: vscode.Position, varName: string): string | null {
@@ -182,13 +215,7 @@ export function findVariableType(document: vscode.TextDocument, position: vscode
 	return null;
 }
 
-export function parseChain(document: vscode.TextDocument, position: vscode.Position, manual: Manual): KAGObject | null {
-	// Get chain
-	const chain = getChain(document, position);
-	if (!chain.length) {
-		return null;
-	}
-
+export function parseChainForLastObject(chain: string[], document: vscode.TextDocument, position: vscode.Position, manual: Manual): KAGObject | null {
 	let obj: KAGObject | null = null;
 	let type: string | null = null;
 
@@ -201,12 +228,12 @@ export function parseChain(document: vscode.TextDocument, position: vscode.Posit
 
 			if (i === 0) {
 				// Function
-				const func = manual.getFunction(text);
-				type = func ? getTrueType(func.returnType) : null;
+				const func = manual.getFunction(null, text);
+				type = func ? getTrueType(func.type) : null;
 			} else if (obj) {
 				// Method
 				const method = obj.getMethod(text);
-				type = method ? getTrueType(method.returnType) : null;
+				type = method ? getTrueType(method.type) : null;
 			}
 		} else {
 			if (i === 0) {
@@ -228,6 +255,59 @@ export function parseChain(document: vscode.TextDocument, position: vscode.Posit
 	}
 
 	return obj;
+}
+
+export function parseChainForLastSubroutine(chain: string[], document: vscode.TextDocument, position: vscode.Position, manual: Manual): Subroutine | null {
+	let obj: KAGObject | null = null;
+	let type: string | null = null;
+	let subroutine: Subroutine | null = null;
+
+	// Iterate through chain
+	for (let i = 0; i < chain.length; i++) {
+		let text = chain[i];
+
+		if (text.endsWith("()")) {
+			text = text.slice(0, -2);
+
+			if (i === 0) {
+				// Function
+				const match = text.match(/(?:(\w+)::)?(\w+)/);
+				if (match) {
+					const namespace = match[1] || null;
+					const name = match[2];
+
+					const func = manual.getFunction(namespace, name);
+					type = func ? getTrueType(func.type) : null;
+					subroutine = func;
+				}
+			} else if (obj) {
+				// Method
+				const method = obj.getMethod(text);
+				type = method ? getTrueType(method.type) : null;
+				subroutine = method;
+			}
+		} else {
+			if (i === 0) {
+				// Variable
+				type = findVariableType(document, position, chain[0]);
+			} else if (obj) {
+				// Property
+				const property = obj.getProperty(text);
+				type = property ? getTrueType(property.type) : null;
+			}
+
+			subroutine = null;
+		}
+
+		// Couldn't find type
+		if (!type) {
+			return null;
+		}
+
+		obj = manual.getObject(type);
+	}
+
+	return subroutine;
 }
 
 export function filterUnique(value: any, index: number, arr: Array<any>): boolean {

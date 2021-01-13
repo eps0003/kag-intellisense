@@ -1,14 +1,12 @@
 import * as vscode from "vscode";
+import Declaration from "./declaration";
 
-export default class Variable {
+export default class Variable extends Declaration {
 	namespace: string | null;
-	type: string;
-	name: string;
 
 	constructor(namespace: string | null, type: string, name: string) {
+		super(type, name);
 		this.namespace = namespace;
-		this.type = type;
-		this.name = name;
 	}
 
 	toString(): string {

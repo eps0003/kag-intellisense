@@ -1,12 +1,12 @@
 import * as vscode from "vscode";
+import Declaration from "./declaration";
 
-export default class Enum {
+export default class Enum extends Declaration {
 	namespace: string;
-	name: string;
 
 	constructor(namespace: string, name: string) {
+		super("int", name);
 		this.namespace = namespace;
-		this.name = name;
 	}
 
 	toString(): string {

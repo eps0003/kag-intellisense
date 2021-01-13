@@ -1,28 +1,25 @@
 import * as vscode from "vscode";
-import Param from "./param";
+import Declaration from "./declaration";
+import Signature from "./signature";
 
-export default class Method {
-	returnType: string;
-	name: string;
-	params: Param[];
+export default class Hook extends Declaration {
+	signature: Signature;
 
-	constructor(returnType: string, name: string, params: Param[]) {
-		this.returnType = returnType;
-		this.name = name;
-		this.params = params;
+	constructor(type: string, name: string, signature: Signature) {
+		super(type, name);
+		this.signature = signature;
 	}
 
 	toString(): string {
-		const formattedParams = this.params.map((param) => `${param.type} ${param.name}`).join(", ");
-		return `${this.returnType} ${this.name}(${formattedParams})`;
+		return `${this.type} ${this.name}(${this.signature})`;
 	}
 
 	toSnippet(): vscode.SnippetString | string {
-		return new vscode.SnippetString(`${this.toString()}\n{\n\t$0\n}`);
+		return new vscode.SnippetString(`${this}\n{\n\t$0\n}`);
 	}
 
 	toCompletionItem(): vscode.CompletionItem {
-		const item = new vscode.CompletionItem(this.toString(), vscode.CompletionItemKind.Function);
+		const item = new vscode.CompletionItem(this.toString(), vscode.CompletionItemKind.Event);
 		item.insertText = this.toSnippet();
 		return item;
 	}
