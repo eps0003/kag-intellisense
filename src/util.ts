@@ -93,15 +93,7 @@ export function isCursorInString(document: vscode.TextDocument, position: vscode
 }
 
 export function getVariableNames(document: vscode.TextDocument, position: vscode.Position): string[] {
-	let textToCursor = removeComments(sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position))));
-
-	// Remove sections of code out of scope
-	{
-		const regex = /{[^{]*?}/g;
-		while (regex.test(textToCursor)) {
-			textToCursor = textToCursor.replace(regex, "");
-		}
-	}
+	let textToCursor = removeCodeOutOfScope(removeComments(sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)))));
 
 	// Check if cursor is within a function
 	if (/{/g.test(textToCursor)) {
@@ -164,28 +156,32 @@ export function getGlobalScriptVariables(document: vscode.TextDocument): Variabl
 }
 
 export function getChain(document: vscode.TextDocument, position: vscode.Position): string[] {
-	let lineToCursor = document.lineAt(position.line).text.substr(0, position.character).trim();
+	let textToCursor = removeComments(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
 
 	{
 		// Remove things inside brackets
-		const regex = /\((?:\(\)|[^(])+?\)/;
-		while (regex.test(lineToCursor)) {
-			lineToCursor = lineToCursor.replace(regex, "()");
-		}
+		const regex = /\((?:\(\)|[^(])+?\)/g;
+		textToCursor = textToCursor.replace(regex, "()");
+	}
+
+	{
+		// Remove whitespace around fullstops and brackets
+		const regex = /\s*([.()])\s*/g;
+		textToCursor = textToCursor.replace(regex, (match, symbol) => symbol);
 	}
 
 	{
 		// Get chain string
-		const regex = /(?:\(\)|[^\s(])+?$/;
-		const match = lineToCursor.match(regex);
+		const regex = /(?:[\w.:]|\(\)\.)+$/;
+		const match = textToCursor.match(regex);
 		if (match) {
-			lineToCursor = match[0];
+			const chain = match[0].split(".");
+			chain.pop();
+			return chain;
 		}
 	}
 
-	const chain = lineToCursor.split(".");
-	chain.pop();
-	return chain;
+	return [];
 }
 
 export function getChainWithArgs(document: vscode.TextDocument, position: vscode.Position): [string[], string[]] | null {
@@ -221,15 +217,7 @@ export function getChainWithArgs(document: vscode.TextDocument, position: vscode
 }
 
 export function findVariableType(document: vscode.TextDocument, position: vscode.Position, varName: string): string | null {
-	let textToCursor = removeComments(sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position))));
-
-	{
-		// Remove sections of code out of scope
-		const regex = /{[^{]*?}/g;
-		while (regex.test(textToCursor)) {
-			textToCursor = textToCursor.replace(regex, "");
-		}
-	}
+	let textToCursor = removeCodeOutOfScope(removeComments(sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)))));
 
 	// Check if cursor is within a function
 	if (/{/g.test(textToCursor)) {
@@ -370,4 +358,12 @@ export function parseChainForLastSubroutine(chain: string[], document: vscode.Te
 
 export function filterUnique(value: any, index: number, arr: Array<any>): boolean {
 	return arr.indexOf(value) === index;
+}
+
+export function removeCodeOutOfScope(text: string) {
+	const regex = /{[^{]*?}/g;
+	while (regex.test(text)) {
+		text = text.replace(regex, "");
+	}
+	return text;
 }

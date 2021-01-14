@@ -3,7 +3,6 @@ import Manual from "./manual";
 import * as util from "./util";
 
 const primitives = ["void", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64"];
-const hookRegex = new RegExp(`^((${primitives.join("|")})\\s*)?\\w*$`);
 
 const help = new vscode.SignatureHelp();
 
@@ -43,7 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
 		{
 			provideCompletionItems(document, position, token, context) {
 				// Get text on current line up to cursor
-				const lineToCursor = document.lineAt(position.line).text.substr(0, position.character);
+				const textToCursor = util.sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
 
 				// Don't show completion items if cursor is in a string or comment
 				if (util.isCursorInString(document, position) || util.isCursorInComment(document, position)) {
@@ -52,24 +51,24 @@ export function activate(context: vscode.ExtensionContext) {
 
 				const items: vscode.CompletionItem[] = [];
 
-				if (/\.\w*$/.test(lineToCursor)) {
-					const chainArr = util.getChain(document, position);
-					const obj = util.parseChainForLastObject(chainArr, document, position, manual);
-					if (obj) {
-						items.push(...obj.methods.map((x) => x.toCompletionItem()));
-						items.push(...obj.properties.map((x) => x.toCompletionItem()));
-					}
-				} else if (hookRegex.test(lineToCursor)) {
-					items.push(...manual.hooks.map((x) => x.toCompletionItem()));
+				const chain = util.getChain(document, position);
+				const obj = util.parseChainForLastObject(chain, document, position, manual);
+				if (obj) {
+					items.push(...obj.methods.map((x) => x.toCompletionItem()));
+					items.push(...obj.properties.map((x) => x.toCompletionItem()));
 				}
 
-				if (/(^|[\s,(:])\w*$/.test(lineToCursor)) {
+				if (/(?<!\.(.|\n)*)\w*$/.test(textToCursor)) {
 					items.push(...manual.enums.map((x) => x.toCompletionItem()));
 					items.push(...manual.functions.map((x) => x.toCompletionItem()));
 					items.push(...manual.variables.map((x) => x.toCompletionItem()));
 					items.push(...manual.objects.map((x) => x.toCompletionItem()));
 					items.push(...util.getVariableNames(document, position).map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Variable)));
 					items.push(...primitives.map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Keyword)));
+				}
+
+				if (/^[^{]*$/.test(util.removeCodeOutOfScope(textToCursor))) {
+					items.push(...manual.hooks.map((x) => x.toCompletionItem()));
 				}
 
 				return items;
