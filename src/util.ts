@@ -188,7 +188,7 @@ export function getChainWithArgs(document: vscode.TextDocument, position: vscode
 	let textToCursor = removeComments(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
 
 	// Check if inside method brackets
-	if (/\([^)]*$/.test(textToCursor)) {
+	if (/\(([^)]|\(\))*$/.test(textToCursor)) {
 		{
 			// Remove things inside brackets
 			const regex = /\((?:\(\)|[^(])+?\)/g;
@@ -203,7 +203,7 @@ export function getChainWithArgs(document: vscode.TextDocument, position: vscode
 
 		{
 			// Get chain string
-			const regex = /((?:\(\)|[^(, ])*)\(((?:\(\)|[^(])*?)$/;
+			const regex = /((?:\(\)|[^(,\s])*)\(((?:\(\)|[^(])*?)$/;
 			const match = textToCursor.match(regex);
 			if (match) {
 				textToCursor = match[1];
