@@ -185,27 +185,31 @@ export function getChain(document: vscode.TextDocument, position: vscode.Positio
 }
 
 export function getChainWithArgs(document: vscode.TextDocument, position: vscode.Position): [string[], string[]] | null {
-	let lineToCursor = removeComments(sanitise(document.lineAt(position.line).text.substr(0, position.character))).trim();
+	let textToCursor = removeComments(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
 
 	// Check if inside method brackets
-	if (/\([^)]*$/.test(lineToCursor)) {
+	if (/\([^)]*$/.test(textToCursor)) {
 		{
 			// Remove things inside brackets
-			const regex = /\((?:\(\)|[^(])+?\)/;
-			while (regex.test(lineToCursor)) {
-				lineToCursor = lineToCursor.replace(regex, "()");
-			}
+			const regex = /\((?:\(\)|[^(])+?\)/g;
+			textToCursor = textToCursor.replace(regex, "()");
+		}
+
+		{
+			// Remove whitespace around fullstops and brackets
+			const regex = /\s*([.()])\s*/g;
+			textToCursor = textToCursor.replace(regex, (match, symbol) => symbol);
 		}
 
 		{
 			// Get chain string
 			const regex = /((?:\(\)|[^(, ])*)\(((?:\(\)|[^(])*?)$/;
-			const match = lineToCursor.match(regex);
+			const match = textToCursor.match(regex);
 			if (match) {
-				lineToCursor = match[1];
+				textToCursor = match[1];
 				const args = match[2].split(/\s*,\s*/);
 
-				const chain = lineToCursor.split(".");
+				const chain = textToCursor.split(".");
 				chain[chain.length - 1] += "()";
 
 				return [chain, args];
