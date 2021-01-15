@@ -58,7 +58,8 @@ export function activate(context: vscode.ExtensionContext) {
 					items.push(...obj.properties.map((x) => x.toCompletionItem()));
 				}
 
-				if (/(?<!\.(.|\n)*)\w*$/.test(textToCursor)) {
+				// Check if there isn't a fullstop anywhere before the cursor
+				if (/(?<!\.\s*\w*)\w*$/.test(textToCursor)) {
 					items.push(...manual.enums.map((x) => x.toCompletionItem()));
 					items.push(...manual.functions.map((x) => x.toCompletionItem()));
 					items.push(...manual.variables.map((x) => x.toCompletionItem()));
