@@ -68,8 +68,9 @@ export default class KAGObject extends Declaration {
 							.trim()
 							.split(/\s*,\s*/g)
 							.filter(Boolean)
-							.map((str) => {
-								return new Param(str);
+							.map((str, i) => {
+								// Add incrementing letter as param name because VSCode can't handle params with identical names
+								return new Param(str, String.fromCharCode(97 + i));
 							});
 
 						if (!this.construct) {
