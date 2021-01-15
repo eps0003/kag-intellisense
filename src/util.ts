@@ -1,6 +1,9 @@
 import * as vscode from "vscode";
+import Func from "./function";
 import Manual from "./manual";
 import KAGObject from "./object";
+import Param from "./param";
+import Signature from "./signature";
 import Subroutine from "./subroutine";
 import Variable from "./variable";
 
@@ -270,7 +273,8 @@ export function parseChainForLastObject(chain: string[], document: vscode.TextDo
 					type = kagObject.type;
 				} else {
 					// Function
-					const func = manual.getFunction(null, text);
+					const funcs = getScriptFunctions(document, manual.functions);
+					const func = funcs[`::${text}`];
 					type = func ? getTrueType(func.type) : null;
 				}
 			} else if (obj) {
@@ -325,7 +329,8 @@ export function parseChainForLastSubroutine(chain: string[], document: vscode.Te
 						const namespace = match[1] || null;
 						const name = match[2];
 
-						const func = manual.getFunction(namespace, name);
+						const funcs = getScriptFunctions(document, manual.functions);
+						const func = funcs[`${namespace || ""}::${name}`];
 						type = func ? getTrueType(func.type) : null;
 						subroutine = func;
 					}
@@ -370,4 +375,36 @@ export function removeCodeOutOfScope(text: string) {
 		text = text.replace(regex, "");
 	}
 	return text;
+}
+
+export function getScriptFunctions(document: vscode.TextDocument, funcs: { [name: string]: Func } = {}): { [name: string]: Func } {
+	const text = removeComments(sanitise(document.getText()));
+
+	// Clone to make sure we aren't adding to the manual's functions
+	funcs = { ...funcs };
+
+	const regex = /(?:^|\n)(\S+)[^\S\n]+(\w+)\((.*)\)/g;
+	let match;
+	while ((match = regex.exec(text))) {
+		const type = match[1];
+		const name = match[2];
+		const params = match[3]
+			.trim()
+			.split(/\s*,\s*/g)
+			.filter(Boolean)
+			.map((str) => {
+				const [type, name] = str.split(/\s+/);
+				return new Param(type, name);
+			});
+
+		const key = `::${name}`;
+
+		if (!funcs.hasOwnProperty(key)) {
+			funcs[key] = new Func(null, type, name);
+		}
+
+		funcs[key].addSignature(new Signature(params));
+	}
+
+	return funcs;
 }

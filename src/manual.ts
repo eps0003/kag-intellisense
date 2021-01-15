@@ -13,11 +13,11 @@ import Variable from "./variable";
 export default class Manual {
 	private _path: string;
 
-	private _enums: Enum[] = [];
-	private _functions: { [name: string]: Func } = {};
-	private _hooks: Hook[] = [];
-	private _objects: KAGObject[] = [];
-	private _variables: Variable[] = [];
+	enums: Enum[] = [];
+	functions: { [name: string]: Func } = {};
+	hooks: Hook[] = [];
+	objects: KAGObject[] = [];
+	variables: Variable[] = [];
 
 	constructor(path: string) {
 		this._path = path;
@@ -29,28 +29,8 @@ export default class Manual {
 		this.initVariables();
 	}
 
-	get enums(): Enum[] {
-		return this._enums;
-	}
-
-	get functions(): Func[] {
-		return Object.values(this._functions);
-	}
-
-	get hooks(): Hook[] {
-		return this._hooks;
-	}
-
-	get objects(): KAGObject[] {
-		return this._objects;
-	}
-
-	get variables(): Variable[] {
-		return this._variables;
-	}
-
 	getObject(name: string): KAGObject | null {
-		for (const obj of this._objects) {
+		for (const obj of this.objects) {
 			if (obj.name === name) {
 				return obj;
 			}
@@ -60,7 +40,7 @@ export default class Manual {
 
 	getFunction(namespace: string | null, name: string): Func | null {
 		const key = `${namespace || ""}::${name}`;
-		return this._functions[key];
+		return this.functions[key];
 	}
 
 	private initObjects() {
@@ -80,7 +60,7 @@ export default class Manual {
 					continue;
 				}
 
-				this._objects.push(new KAGObject(name, path));
+				this.objects.push(new KAGObject(name, path));
 			}
 		});
 	}
@@ -112,7 +92,7 @@ export default class Manual {
 							return new Param(type, name);
 						});
 
-					this._hooks.push(new Hook(returnType, name, new Signature(params)));
+					this.hooks.push(new Hook(returnType, name, new Signature(params)));
 				}
 			}
 		});
@@ -138,7 +118,7 @@ export default class Manual {
 					const type = match[2];
 					const name = match[3];
 
-					this._variables.push(new Variable(namespace, type, name));
+					this.variables.push(new Variable(namespace, type, name));
 				}
 			}
 		});
@@ -174,11 +154,11 @@ export default class Manual {
 
 					const key = `${namespace || ""}::${name}`;
 
-					if (!this._functions.hasOwnProperty(key)) {
-						this._functions[key] = new Func(namespace, returnType, name);
+					if (!this.functions.hasOwnProperty(key)) {
+						this.functions[key] = new Func(namespace, returnType, name);
 					}
 
-					this._functions[key].addSignature(new Signature(params));
+					this.functions[key].addSignature(new Signature(params));
 				}
 			}
 		});
@@ -209,7 +189,7 @@ export default class Manual {
 				if (match) {
 					const name = match[1];
 
-					this._enums.push(new Enum(namespace, name));
+					this.enums.push(new Enum(namespace, name));
 					continue;
 				}
 			}
