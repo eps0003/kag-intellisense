@@ -2,101 +2,82 @@ import * as vscode from "vscode";
 import Func from "./function";
 import Manual from "./manual";
 import KAGObject from "./object";
-import Param from "./param";
 import Signature from "./signature";
 import Subroutine from "./subroutine";
 import Variable from "./variable";
 
-export function removeComments(text: string): string {
-	// Remove single line comments
-	text = text.replace(/\s*\/\/.*/g, "");
+// Checks for strings and both types of comments: /string|block comment|line comment/
+export const stringCommentRegex = /(["'])(?:[^\1\\]|\\.)*?(?:\1|$)|\/\*(?:[^/]|[^*]\/)*(?:\*\/|$)|\/\/.*/g;
 
-	// Remove multi line comments
-	text = text.replace(/\/\*(?:.|\n|\r)*?(?:\*\/|$)/g, "");
+export function canShowCompletionItems(document: vscode.TextDocument, position: vscode.Position): boolean {
+	const text = document.getText(new vscode.Range(new vscode.Position(0, 0), position));
 
+	const match = text.match(stringCommentRegex);
+	if (!match) {
+		// No string or comments exist
+		return true;
+	}
+
+	const lastMatch = match[match.length - 1];
+	if (!text.endsWith(lastMatch)) {
+		// Text doesnt end with string or comment
+		return true;
+	}
+
+	if (/^["']/.test(lastMatch)) {
+		// String
+		const quote = lastMatch.charAt(0);
+		// Check if string is not closed
+		if (new RegExp(`(^${quote}|\\\\${quote}|[^${quote}])$`).test(lastMatch)) {
+			// Inside string
+			return false;
+		}
+	} else if (lastMatch.startsWith("/*")) {
+		// Block comment
+		// Check if comment is not closed
+		if (!lastMatch.endsWith("*/")) {
+			// Inside comment
+			return false;
+		}
+	} else {
+		// Line comment
+		return false;
+	}
+
+	return true;
+}
+
+export function sanitise(document: vscode.TextDocument, position: vscode.Position | undefined = undefined, notStrings = false): string {
+	let text = document.getText(position ? new vscode.Range(new vscode.Position(0, 0), position) : undefined);
+	text = sanitiseStringsAndComments(text, notStrings);
+	text = fixPointerHandles(text);
 	return text;
 }
 
-export function sanitise(text: string): string {
-	// Remove contents of strings
-	text = text.replace(/(?<=.*)("(?:[^"\\]|\\.)*(?:"|$)|'(?:[^'\\]|\\.)*(?:'|$))/g, (x) => {
-		// Get quote type
-		const quote = x.charAt(0);
-
-		const closed = x.endsWith(quote);
-
-		// Remove quotes
-		x = x.slice(1, closed ? -1 : undefined);
-
-		const len = x.length;
-		return quote + (len > 0 ? " ".repeat(len) : "") + (closed ? quote : "");
-	});
-
-	// Remove single line comments
-	text = text.replace(/\/\/.*/g, (x) => {
-		const len = x.length - 2;
-		return "//" + (len > 0 ? " ".repeat(len) : "");
-	});
-
-	// Remove contents of multi line comments
-	text = text.replace(/\/\*(?:.|\n|\r)*?(?:\*\/|$)/g, (x) => {
-		// Remove /*
-		x = x.slice(2);
-
-		// Remove */ if there is one
-		const closed = x.endsWith("*/");
-		if (closed) {
-			x = x.slice(0, -2);
+export function sanitiseStringsAndComments(text: string, notStrings = false): string {
+	return text.replace(stringCommentRegex, (match, quote) => {
+		if (quote) {
+			if (notStrings) {
+				// Ignore strings
+				return match;
+			} else {
+				// Remove contents of strings
+				const closed = new RegExp(`(^${quote}|\\\\${quote}|[^${quote}])$`).test(match);
+				return quote + (closed ? quote : "");
+			}
 		}
 
-		// Replace contents of each line
-		x = x
-			.split("\n")
-			.map((line) => {
-				const len = line.length;
-				return len > 0 ? " ".repeat(len) : "";
-			})
-			.join("\n");
-
-		// Append /* */ and return sanitised comment
-		return "/*" + x + (closed ? "*/" : "");
+		// Completely remove comments
+		return "";
 	});
-
-	return text;
 }
 
-export function isCursorInComment(document: vscode.TextDocument, position: vscode.Position): boolean {
-	const lineToCursor = sanitise(document.lineAt(position.line).text.substr(0, position.character));
-	const textToCursor = sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
-
-	// Single line comment
-	if (/\/\/.*$/g.test(lineToCursor)) {
-		return true;
-	}
-
-	// Multi line comment
-	if (/(?:\/\*)([^\/])*$/.test(textToCursor)) {
-		return true;
-	}
-
-	return false;
-}
-
-export function isCursorInString(document: vscode.TextDocument, position: vscode.Position): boolean {
-	const lineToCursor = document.lineAt(position.line).text.substr(0, position.character);
-
-	const regex = /(?<=.*)("(?:[^"\\]|\\.)*("|$)|'(?:[^'\\]|\\.)*('|$))/g;
-	const match = lineToCursor.match(regex);
-
-	if (match && lineToCursor.endsWith(match[match.length - 1])) {
-		return true;
-	}
-
-	return false;
+export function fixPointerHandles(text: string): string {
+	return text.replace(/(?<=[\w\]>])\s+@\s*/g, "@ ");
 }
 
 export function getVariableNames(document: vscode.TextDocument, position: vscode.Position): string[] {
-	let textToCursor = removeCodeOutOfScope(removeComments(sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)))));
+	let textToCursor = removeCodeOutOfScope(sanitise(document, position));
 
 	// Check if cursor is within a function
 	if (/{/g.test(textToCursor)) {
@@ -142,7 +123,7 @@ export function getTrueType(type: string): string {
 export function getGlobalScriptVariables(document: vscode.TextDocument): Variable[] {
 	const vars: Variable[] = [];
 
-	const text = removeComments(sanitise(document.getText()));
+	const text = sanitise(document);
 	const lines = text.split("\n");
 
 	const regex = /^(?:const\s+)?(\w+(?:@?(?:\[\])+)?|array(?:<.+>))@?\s+(\w+)\s*(?:;|=)/;
@@ -159,7 +140,7 @@ export function getGlobalScriptVariables(document: vscode.TextDocument): Variabl
 }
 
 export function getChain(document: vscode.TextDocument, position: vscode.Position): string[] {
-	let textToCursor = removeComments(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
+	let textToCursor = sanitise(document, position);
 
 	{
 		// Remove things inside brackets
@@ -188,7 +169,7 @@ export function getChain(document: vscode.TextDocument, position: vscode.Positio
 }
 
 export function getChainWithArgs(document: vscode.TextDocument, position: vscode.Position): [string[], string[]] | null {
-	let textToCursor = removeComments(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
+	let textToCursor = sanitise(document, position);
 
 	// Check if inside method brackets
 	if (/\(([^)]|\(\))*$/.test(textToCursor)) {
@@ -224,7 +205,7 @@ export function getChainWithArgs(document: vscode.TextDocument, position: vscode
 }
 
 export function findVariableType(document: vscode.TextDocument, position: vscode.Position, varName: string): string | null {
-	let textToCursor = removeCodeOutOfScope(removeComments(sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)))));
+	let textToCursor = removeCodeOutOfScope(sanitise(document, position));
 
 	// Check if cursor is within a function
 	if (/{/g.test(textToCursor)) {
@@ -370,15 +351,15 @@ export function filterUnique(value: any, index: number, arr: Array<any>): boolea
 }
 
 export function removeCodeOutOfScope(text: string) {
-	const regex = /{[^{]*?}/g;
+	const regex = /{([^{]|{})+?}/g;
 	while (regex.test(text)) {
-		text = text.replace(regex, "");
+		text = text.replace(regex, "{}");
 	}
 	return text;
 }
 
 export function getScriptFunctions(document: vscode.TextDocument, funcs: { [name: string]: Func } = {}): { [name: string]: Func } {
-	const text = removeComments(sanitise(document.getText()));
+	const text = sanitise(document);
 
 	// Clone to make sure we aren't adding to the manual's functions
 	funcs = { ...funcs };
@@ -388,14 +369,7 @@ export function getScriptFunctions(document: vscode.TextDocument, funcs: { [name
 	while ((match = regex.exec(text))) {
 		const type = match[1];
 		const name = match[2];
-		const params = match[3]
-			.trim()
-			.split(/\s*,\s*/g)
-			.filter(Boolean)
-			.map((str) => {
-				const [type, name] = str.split(/\s+/);
-				return new Param(type, name);
-			});
+		const signature = Signature.parse(match[3]);
 
 		const key = `::${name}`;
 
@@ -403,7 +377,7 @@ export function getScriptFunctions(document: vscode.TextDocument, funcs: { [name
 			funcs[key] = new Func(null, type, name);
 		}
 
-		funcs[key].addSignature(new Signature(params));
+		funcs[key].addSignature(signature);
 	}
 
 	return funcs;

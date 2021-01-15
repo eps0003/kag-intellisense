@@ -3,7 +3,6 @@ import * as vscode from "vscode";
 import Constructor from "./constructor";
 import Declaration from "./declaration";
 import Method from "./method";
-import Param from "./param";
 import Property from "./property";
 import Signature from "./signature";
 
@@ -61,54 +60,41 @@ export default class KAGObject extends Declaration {
 				}
 
 				{
+					// Constructor
 					const regex = /^<constructor>\((.*)\)$/;
 					const match = text.match(regex);
 					if (match) {
-						const params = match[1]
-							.trim()
-							.split(/\s*,\s*/g)
-							.filter(Boolean)
-							.map((str, i) => {
-								// Add incrementing letter as param name because VSCode can't handle params with identical names
-								return new Param(str, String.fromCharCode(97 + i));
-							});
+						const signature = Signature.parse(match[1]);
 
 						if (!this.construct) {
 							this.construct = new Constructor(this.name);
 						}
 
-						this.construct.addSignature(new Signature(params));
+						this.construct.addSignature(signature);
 						continue;
 					}
 				}
 
-				//method
 				{
-					const regex = /^(\S+)\s+(?:::)?(\S+)\((.*)\)(?:\s+const)?$/;
+					// Method
+					const regex = /^(?:const\s+)?(\S+)\s+(?:::)?(\S+)\((.*)\)(?:\s+const)?$/;
 					const match = text.match(regex);
 					if (match) {
 						const returnType = match[1];
 						const name = match[2];
-						const params = match[3]
-							.trim()
-							.split(/\s*,\s*/g)
-							.filter(Boolean)
-							.map((str) => {
-								const [type, name] = str.split(/\s+/);
-								return new Param(type, name);
-							});
+						const signature = Signature.parse(match[3]);
 
 						if (!this._methods.hasOwnProperty(name)) {
 							this._methods[name] = new Method(this, returnType, name);
 						}
 
-						this._methods[name].addSignature(new Signature(params));
+						this._methods[name].addSignature(signature);
 						continue;
 					}
 				}
 
-				//property
 				{
+					// Property
 					const regex = /^(\S+)\s+(\S+)$/;
 					const match = text.match(regex);
 					if (match) {

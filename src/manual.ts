@@ -6,7 +6,6 @@ import Enum from "./enum";
 import Func from "./function";
 import Hook from "./hook";
 import KAGObject from "./object";
-import Param from "./param";
 import Signature from "./signature";
 import Variable from "./variable";
 
@@ -83,16 +82,9 @@ export default class Manual {
 				if (match) {
 					const returnType = match[1];
 					const name = match[2];
-					const params = match[3]
-						.trim()
-						.split(/\s*,\s*/g)
-						.filter(Boolean)
-						.map((str) => {
-							const [type, name] = str.split(/\s+/);
-							return new Param(type, name);
-						});
+					const signature = Signature.parse(match[3]);
 
-					this.hooks.push(new Hook(returnType, name, new Signature(params)));
+					this.hooks.push(new Hook(returnType, name, signature));
 				}
 			}
 		});
@@ -143,14 +135,7 @@ export default class Manual {
 					const returnType = match[1];
 					const namespace = match[2] || null;
 					const name = match[3];
-					const params = match[4]
-						.trim()
-						.split(/\s*,\s*/g)
-						.filter(Boolean)
-						.map((str) => {
-							const [type, name] = str.split(/\s+/);
-							return new Param(type, name);
-						});
+					const signature = Signature.parse(match[4]);
 
 					const key = `${namespace || ""}::${name}`;
 
@@ -158,7 +143,7 @@ export default class Manual {
 						this.functions[key] = new Func(namespace, returnType, name);
 					}
 
-					this.functions[key].addSignature(new Signature(params));
+					this.functions[key].addSignature(signature);
 				}
 			}
 		});

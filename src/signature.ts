@@ -10,4 +10,14 @@ export default class Signature {
 	toString(): string {
 		return this.params.map((x) => x.toString()).join(", ");
 	}
+
+	static parse(str: string): Signature {
+		const params = str
+			.trim()
+			.split(/\s*,\s*/g)
+			.filter(Boolean)
+			.map(Param.parse);
+
+		return new Signature(params);
+	}
 }

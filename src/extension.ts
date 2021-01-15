@@ -41,35 +41,33 @@ export function activate(context: vscode.ExtensionContext) {
 		"angelscript",
 		{
 			provideCompletionItems(document, position, token, context) {
-				// Get text on current line up to cursor
-				const textToCursor = util.sanitise(document.getText(new vscode.Range(new vscode.Position(0, 0), position)));
-
-				// Don't show completion items if cursor is in a string or comment
-				if (util.isCursorInString(document, position) || util.isCursorInComment(document, position)) {
-					return null;
+				if (!util.canShowCompletionItems(document, position)) {
+					return;
 				}
+
+				// Get text on current line up to cursor
+				const textToCursor = util.sanitise(document, position);
 
 				const items: vscode.CompletionItem[] = [];
 
 				const chain = util.getChain(document, position);
-				const obj = util.parseChainForLastObject(chain, document, position, manual);
-				if (obj) {
-					items.push(...obj.methods.map((x) => x.toCompletionItem()));
-					items.push(...obj.properties.map((x) => x.toCompletionItem()));
-				}
-
-				// Check if there isn't a fullstop anywhere before the cursor
-				if (/(?<!\.\s*\w*)\w*$/.test(textToCursor)) {
+				if (chain.length) {
+					const obj = util.parseChainForLastObject(chain, document, position, manual);
+					if (obj) {
+						items.push(...obj.methods.map((x) => x.toCompletionItem()));
+						items.push(...obj.properties.map((x) => x.toCompletionItem()));
+					}
+				} else {
 					items.push(...manual.enums.map((x) => x.toCompletionItem()));
 					items.push(...Object.values(util.getScriptFunctions(document, manual.functions)).map((x) => x.toCompletionItem()));
 					items.push(...manual.variables.map((x) => x.toCompletionItem()));
 					items.push(...manual.objects.map((x) => x.toCompletionItem()));
 					items.push(...util.getVariableNames(document, position).map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Variable)));
 					items.push(...primitives.map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Keyword)));
-				}
 
-				if (/^[^{]*$/.test(util.removeCodeOutOfScope(textToCursor))) {
-					items.push(...manual.hooks.map((x) => x.toCompletionItem()));
+					if (/^([^{]|{})*$/.test(util.removeCodeOutOfScope(textToCursor))) {
+						items.push(...manual.hooks.map((x) => x.toCompletionItem()));
+					}
 				}
 
 				return items;
