@@ -60,20 +60,23 @@ export function sanitiseStringsAndComments(text: string, notStrings = false): st
 			if (notStrings) {
 				// Ignore strings
 				return match;
-			} else {
-				// Remove contents of strings
-				const closed = new RegExp(`(^${quote}|\\\\${quote}|[^${quote}])$`).test(match);
-				return quote + (closed ? quote : "");
 			}
+
+			// Replace contents of string with spaces
+			// /[^"\s]|(?<=\\)"/g.source with occurences of " replaced with ${quote}
+			return match.replace(new RegExp(`[^${quote}\\s]|(?<=\\\\)${quote}`, "g"), " ");
 		}
 
-		// Completely remove comments
-		return "";
+		// Entirely replace comments with spaces
+		return match.replace(/\S/g, " ");
 	});
 }
 
 export function fixPointerHandles(text: string): string {
-	return text.replace(/(?<=[\w\]>])\s+@\s*/g, "@ ");
+	return text.replace(/(?<=[\w\]>])\s+@\s*/g, (match) => {
+		const len = match.length - 1;
+		return "@" + " ".repeat(len);
+	});
 }
 
 export function getVariableNames(document: vscode.TextDocument, position: vscode.Position): string[] {
@@ -149,17 +152,11 @@ export function getChain(document: vscode.TextDocument, position: vscode.Positio
 	}
 
 	{
-		// Remove whitespace around fullstops and brackets
-		const regex = /\s*([.()])\s*/g;
-		textToCursor = textToCursor.replace(regex, (match, symbol) => symbol);
-	}
-
-	{
 		// Get chain string
-		const regex = /(?:[\w.:]|\(\)\.)+$/;
+		const regex = /(\w*\s*(\(\))?\s*(\.|$))+$/;
 		const match = textToCursor.match(regex);
 		if (match) {
-			const chain = match[0].split(".");
+			const chain = match[0].split(".").map((x) => x.replace(/\s+/g, ""));
 			chain.pop();
 			return chain;
 		}
@@ -180,20 +177,17 @@ export function getChainWithArgs(document: vscode.TextDocument, position: vscode
 		}
 
 		{
-			// Remove whitespace around fullstops and brackets
-			const regex = /\s*([.()])\s*/g;
-			textToCursor = textToCursor.replace(regex, (match, symbol) => symbol);
-		}
-
-		{
 			// Get chain string
-			const regex = /((?:\(\)|[^(,\s])*)\(((?:\(\)|[^(])*?)$/;
+			// (\w*\s*(?:\(\))?\s* - first variable or function
+			// (?:\s*\.\s*\w+\s*(?:\(\))?)*) - chained properties or methods
+			// \(((?:\(\)|[^(])*?)$ - arguments
+			const regex = /(\w*\s*(?:\(\))?\s*(?:\s*\.\s*\w+\s*(?:\(\))?)*)\(((?:\(\)|[^(])*?)$/;
 			const match = textToCursor.match(regex);
 			if (match) {
 				textToCursor = match[1];
 				const args = match[2].split(/\s*,\s*/);
 
-				const chain = textToCursor.split(".");
+				const chain = textToCursor.split(".").map((x) => x.replace(/\s+/g, ""));
 				chain[chain.length - 1] += "()";
 
 				return [chain, args];
