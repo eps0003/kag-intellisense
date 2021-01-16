@@ -37,8 +37,11 @@ export default class Param {
 		}
 
 		{
-			const regex = /^(?:(const)\s+)?([^\s&]+)\s*(?:(&in|&out|&inout)\s*)?\s+(\w+)?(?:\s*=\s*(.+))?$/;
-			const match = regex.exec(str)!;
+			const regex = /^(?:(const)\s+)?([^\s&]+)\s*(?:(&in|&out|&inout)\s*)?(\s+(\w+)(?:\s*=\s*(.+))?)?$/;
+			const match = regex.exec(str);
+			if (!match) {
+				throw new Error("Unable to parse param: " + str);
+			}
 
 			const isConst = Boolean(match[1]);
 			const type = match[2];
