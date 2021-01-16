@@ -5,12 +5,24 @@ import * as util from "./util";
 const primitives = ["void", "bool", "int", "int8", "int16", "int32", "int64", "uint", "uint8", "uint16", "uint32", "uint64", "s8", "s16", "s32", "s64", "u8", "u16", "u32", "u64"];
 
 const help = new vscode.SignatureHelp();
+let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
 	const manual = Manual.getManual();
 	if (!manual) {
 		return;
 	}
+
+	diagnosticCollection = vscode.languages.createDiagnosticCollection("angelscript");
+	context.subscriptions.push(diagnosticCollection);
+
+	vscode.workspace.onDidChangeTextDocument((changeEvent) => {
+		const uri = changeEvent.document.uri;
+		const diagnostics = util.checkForProblems(changeEvent.document);
+
+		diagnosticCollection.clear();
+		diagnosticCollection.set(uri, diagnostics);
+	});
 
 	vscode.languages.registerSignatureHelpProvider(
 		"angelscript",

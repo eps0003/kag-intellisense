@@ -376,3 +376,37 @@ export function getScriptFunctions(document: vscode.TextDocument, funcs: { [name
 
 	return funcs;
 }
+
+export function checkForProblems(document: vscode.TextDocument): vscode.Diagnostic[] {
+	const text = sanitise(document);
+	const diagnostics: vscode.Diagnostic[] = [];
+
+	{
+		// Missing semicolon after #include
+		const regex = /(?<=#include\s+(["']).*?)\1(?!;)/g;
+		let match;
+		while ((match = regex.exec(text))) {
+			diagnostics.push(getDiagnostic(text, match, "Missing semicolon", vscode.DiagnosticSeverity.Error));
+		}
+	}
+
+	{
+		// 'const' not initialized
+		const regex = /(?<=(^|[;{}()])\s*const\s+\S+\s+)\w+(?=\s*;)/g;
+		let match;
+		while ((match = regex.exec(text))) {
+			diagnostics.push(getDiagnostic(text, match, "'const' declarations must be initialized", vscode.DiagnosticSeverity.Error));
+		}
+	}
+
+	return diagnostics;
+}
+
+export function getDiagnostic(text: string, match: RegExpExecArray, message: string, severity: vscode.DiagnosticSeverity): vscode.Diagnostic {
+	const prevText = text.slice(0, match.index);
+	const lines = prevText.split("\r\n");
+	const line = lines.length - 1;
+	const char = lines[lines.length - 1].length;
+	const range = new vscode.Range(line, char, line, char + match[0].length);
+	return new vscode.Diagnostic(range, message, severity);
+}
