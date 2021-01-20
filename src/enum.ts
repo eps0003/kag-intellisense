@@ -14,7 +14,9 @@ export default class Enum extends Declaration {
 	}
 
 	toSnippet(): vscode.SnippetString | string {
-		return new vscode.SnippetString(`${this.namespace.split("::")[0]}::${this.name}`);
+		const split = this.namespace.split("::");
+		const snippet = split.length > 1 ? `${split[0]}::${this.name}` : this.name;
+		return new vscode.SnippetString(snippet);
 	}
 
 	toCompletionItem(): vscode.CompletionItem {
