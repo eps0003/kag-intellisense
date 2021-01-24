@@ -29,9 +29,9 @@
 		"configuration": {
 			"title": "KAG AngelScript IntelliSense",
 			"properties": {
-				"KAG.manual": {
+				"KAG.path": {
 					"type": "string",
-					"description": "Location of Manual folder in KAG directory. Requires a restart to take effect."
+					"description": "Location of your KAG directory. Requires a restart to take effect."
 				}
 			}
 		}

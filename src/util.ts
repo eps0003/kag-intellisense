@@ -1,4 +1,6 @@
+import * as fs from "fs";
 import * as vscode from "vscode";
+import BaseFolder from "./base-folder";
 import Func from "./function";
 import Manual from "./manual";
 import KAGObject from "./object";
@@ -377,6 +379,18 @@ export function getScriptFunctions(document: vscode.TextDocument, funcs: { [name
 	return funcs;
 }
 
+export function getScriptClasses(document: vscode.TextDocument): KAGObject[] {
+	const text = sanitise(document);
+
+	const objArray: KAGObject[] = [];
+
+	//\bclass\s+(\w+)
+	//\bclass\s+(\w+)(?:.|\n)*?\{
+	//(?<=\bclass\s+(\w+)(?:.|\n)*?\{(?:.|\n)*)(private\b|protected\b)?\s*(\S+)\s+(\w+)\s*(?:=\s*(\S+))?;
+
+	return objArray;
+}
+
 export function checkForProblems(document: vscode.TextDocument): vscode.Diagnostic[] {
 	const text = sanitise(document);
 	const diagnostics: vscode.Diagnostic[] = [];
@@ -409,4 +423,48 @@ export function getDiagnostic(text: string, match: RegExpExecArray, message: str
 	const char = lines[lines.length - 1].length;
 	const range = new vscode.Range(line, char, line, char + match[0].length);
 	return new vscode.Diagnostic(range, message, severity);
+}
+
+export function getIncludes(document: vscode.TextDocument): string[] {
+	const text = removeCodeOutOfScope(sanitise(document, undefined, true));
+	const includes: string[] = [];
+
+	const regex = /#include\s+(["'])(.*?[^\\])\1/g;
+	let match;
+	while ((match = regex.exec(text))) {
+		includes.push(match[2]);
+	}
+
+	return includes;
+}
+
+export function getIncludeDocuments(document: vscode.TextDocument): Promise<vscode.TextDocument[]> {
+	const promises: Thenable<vscode.TextDocument>[] = [];
+
+	const includes = getIncludes(document);
+	for (const include of includes) {
+		const fullIncludes = BaseFolder.getInclude(include);
+		if (!fullIncludes.length) {
+			console.warn("Included file not found: " + include);
+			continue;
+		}
+
+		promises.push(vscode.workspace.openTextDocument(fullIncludes[0]));
+	}
+
+	return Promise.all(promises);
+}
+
+export function getKAGPath(): string {
+	return vscode.workspace.getConfiguration("KAG").path;
+}
+
+export function promptInvalidKAGPath(): void {
+	if (!fs.existsSync(getKAGPath())) {
+		vscode.window.showInformationMessage("KAG AngelScript IntelliSense was unable to start because an invalid/nonexistent KAG path was provided", "Set Path").then((value) => {
+			if (value) {
+				vscode.commands.executeCommand("workbench.action.openSettings", "KAG.path");
+			}
+		});
+	}
 }

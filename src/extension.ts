@@ -1,4 +1,5 @@
 import * as vscode from "vscode";
+import BaseFolder from "./base-folder";
 import Manual from "./manual";
 import * as util from "./util";
 
@@ -8,10 +9,14 @@ const help = new vscode.SignatureHelp();
 let diagnosticCollection: vscode.DiagnosticCollection;
 
 export function activate(context: vscode.ExtensionContext) {
+	util.promptInvalidKAGPath();
+
 	const manual = Manual.getManual();
 	if (!manual) {
 		return;
 	}
+
+	BaseFolder.getFiles();
 
 	diagnosticCollection = vscode.languages.createDiagnosticCollection("angelscript");
 	context.subscriptions.push(diagnosticCollection);
@@ -56,6 +61,10 @@ export function activate(context: vscode.ExtensionContext) {
 				if (!util.canShowCompletionItems(document, position)) {
 					return;
 				}
+
+				util.getIncludeDocuments(document).then((documents) => {
+					console.log(documents);
+				});
 
 				// Get text on current line up to cursor
 				const textToCursor = util.sanitise(document, position);

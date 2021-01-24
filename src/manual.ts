@@ -7,6 +7,7 @@ import Func from "./function";
 import Hook from "./hook";
 import KAGObject from "./object";
 import Signature from "./signature";
+import * as util from "./util";
 import Variable from "./variable";
 
 export default class Manual {
@@ -183,29 +184,20 @@ export default class Manual {
 
 	static getManual(): Manual | null {
 		const manualPath = this.getManualPath();
-		if (!manualPath) {
-			vscode.window.showInformationMessage("KAG AngelScript IntelliSense was unable to start because an invalid/nonexistent path to the KAG Manual was provided", "Set Path").then((value) => {
-				if (value) {
-					vscode.commands.executeCommand("workbench.action.openSettings", "KAG.manual");
-				}
-			});
-			return null;
-		}
-
-		return new Manual(manualPath);
+		return manualPath ? new Manual(manualPath) : null;
 	}
 
 	private static getManualPath(): string | null {
-		const manualPath: string = vscode.workspace.getConfiguration("KAG").manual;
-		if (!manualPath) {
+		const kagPath = util.getKAGPath();
+		if (!kagPath) {
 			return null;
 		}
 
-		const fullPath = path.join(manualPath, "interface/");
-		if (!fs.existsSync(fullPath)) {
+		const manualPath = path.join(kagPath, "Manual/interface/");
+		if (!fs.existsSync(manualPath)) {
 			return null;
 		}
 
-		return fullPath;
+		return manualPath;
 	}
 }
