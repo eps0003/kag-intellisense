@@ -395,23 +395,23 @@ export function checkForProblems(document: vscode.TextDocument): vscode.Diagnost
 	const text = sanitise(document);
 	const diagnostics: vscode.Diagnostic[] = [];
 
-	{
-		// Missing semicolon after #include
-		const regex = /(?<=#include\s+(["']).*?)\1(?!;)/g;
-		let match;
-		while ((match = regex.exec(text))) {
-			diagnostics.push(getDiagnostic(text, match, "Missing semicolon", vscode.DiagnosticSeverity.Error));
-		}
-	}
+	// {
+	// 	// Missing semicolon after #include
+	// 	const regex = /(?<=#include\s+(["']).*?)\1(?!;)/g;
+	// 	let match;
+	// 	while ((match = regex.exec(text))) {
+	// 		diagnostics.push(getDiagnostic(text, match, "Missing semicolon", vscode.DiagnosticSeverity.Error));
+	// 	}
+	// }
 
-	{
-		// 'const' not initialized
-		const regex = /(?<=(^|[;{}()])\s*const\s+\S+\s+)\w+(?=\s*;)/g;
-		let match;
-		while ((match = regex.exec(text))) {
-			diagnostics.push(getDiagnostic(text, match, "'const' declarations must be initialized", vscode.DiagnosticSeverity.Error));
-		}
-	}
+	// {
+	// 	// 'const' not initialized
+	// 	const regex = /(?<=(^|[;{}()])\s*const\s+\S+\s+)\w+(?=\s*;)/g;
+	// 	let match;
+	// 	while ((match = regex.exec(text))) {
+	// 		diagnostics.push(getDiagnostic(text, match, "'const' declarations must be initialized", vscode.DiagnosticSeverity.Error));
+	// 	}
+	// }
 
 	return diagnostics;
 }
