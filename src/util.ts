@@ -357,9 +357,6 @@ export function removeCodeOutOfScope(text: string) {
 export function getScriptFunctions(document: vscode.TextDocument, funcs: { [name: string]: Func } = {}): { [name: string]: Func } {
 	const text = sanitise(document);
 
-	// Clone to make sure we aren't adding to the manual's functions
-	funcs = { ...funcs };
-
 	const regex = /(?:^|\n)(\S+)[^\S\n]+(\w+)\((.*)\)/g;
 	let match;
 	while ((match = regex.exec(text))) {

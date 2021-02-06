@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import BaseFolder from "./base-folder";
+import Func from "./function";
 import Manual from "./manual";
 import * as util from "./util";
 
@@ -57,14 +58,10 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.languages.registerCompletionItemProvider(
 		"angelscript",
 		{
-			provideCompletionItems(document, position, token, context) {
+			async provideCompletionItems(document, position, token, context) {
 				if (!util.canShowCompletionItems(document, position)) {
 					return;
 				}
-
-				util.getIncludeDocuments(document).then((documents) => {
-					console.log(documents);
-				});
 
 				// Get text on current line up to cursor
 				const textToCursor = util.sanitise(document, position);
@@ -80,7 +77,6 @@ export function activate(context: vscode.ExtensionContext) {
 					}
 				} else {
 					items.push(...manual.enums.map((x) => x.toCompletionItem()));
-					items.push(...Object.values(util.getScriptFunctions(document, manual.functions)).map((x) => x.toCompletionItem()));
 					items.push(...manual.variables.map((x) => x.toCompletionItem()));
 					items.push(...manual.objects.map((x) => x.toCompletionItem()));
 					items.push(...util.getVariableNames(document, position).map((x) => new vscode.CompletionItem(x, vscode.CompletionItemKind.Variable)));
@@ -89,6 +85,21 @@ export function activate(context: vscode.ExtensionContext) {
 					if (/^([^{]|{})*$/.test(util.removeCodeOutOfScope(textToCursor))) {
 						items.push(...manual.hooks.map((x) => x.toCompletionItem()));
 					}
+
+					// Clone to make sure we aren't adding to the manual's functions
+					const funcs = { ...manual.functions };
+
+					// Get functions in the current document
+					util.getScriptFunctions(document, funcs);
+
+					// Get functions in included documents
+					const documents = await util.getIncludeDocuments(document);
+					for (const document of documents) {
+						util.getScriptFunctions(document, funcs);
+					}
+
+					// Convert functions to completion items
+					items.push(...Object.values(funcs).map((x) => x.toCompletionItem()));
 				}
 
 				return items;
