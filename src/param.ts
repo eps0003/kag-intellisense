@@ -35,6 +35,11 @@ export default class Param {
 			const regex = /(?<=[\w\]>])\s+@/g;
 			str = str.replace(regex, "@ ");
 		}
+		{
+			// Fix cases where pointer & aligns with the type, not the reference
+			const regex = /(?<=[\w\]>])&\s+(?=(in|out|inout))/g;
+			str = str.replace(regex, ' &');
+		}
 
 		{
 			const regex = /^(?:(const)\s+)?([^\s&]+)\s*(?:(&in|&out|&inout)\s*)?(?:\s+(\w+)(?:\s*=\s*(.+))?)?$/;
