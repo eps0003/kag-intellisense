@@ -1,23 +1,23 @@
 import Param from "./param";
 
 export default class Signature {
-	params: Param[];
+  params: Param[];
 
-	constructor(params: Param[]) {
-		this.params = params;
-	}
+  constructor(params: Param[]) {
+    this.params = params;
+  }
 
-	toString(): string {
-		return this.params.map((x) => x.toString()).join(", ");
-	}
+  toString(): string {
+    return this.params.map((x) => x.toString()).join(", ");
+  }
 
-	static parse(str: string): Signature {
-		const params = str
-			.trim()
-			.split(/\s*,\s*/g)
-			.filter(Boolean)
-			.map(Param.parse);
+  static parse(str: string): Signature {
+    const params = str
+      .trim()
+      .split(/\s*,\s*/g)
+      .filter(Boolean)
+      .map(Param.parse);
 
-		return new Signature(params);
-	}
+    return new Signature(params);
+  }
 }

@@ -1,9 +1,9 @@
 import KAGObject from "./object";
 
 export default class Member {
-	parent: KAGObject;
+  parent: KAGObject;
 
-	constructor(parent: KAGObject) {
-		this.parent = parent;
-	}
+  constructor(parent: KAGObject) {
+    this.parent = parent;
+  }
 }

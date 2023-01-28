@@ -11,193 +11,194 @@ import * as util from "./util";
 import Variable from "./variable";
 
 export default class Manual {
-	private _path: string;
+  private _path: string;
 
-	enums: Enum[] = [];
-	functions: { [name: string]: Func } = {};
-	hooks: Hook[] = [];
-	objects: KAGObject[] = [];
-	variables: Variable[] = [];
+  enums: Enum[] = [];
+  functions: { [name: string]: Func } = {};
+  hooks: Hook[] = [];
+  objects: KAGObject[] = [];
+  variables: Variable[] = [];
 
-	constructor(path: string) {
-		this._path = path;
+  constructor(path: string) {
+    this._path = path;
 
-		this.initEnums();
-		this.initFunctions();
-		this.initHooks();
-		this.initObjects();
-		this.initVariables();
-	}
+    this.initEnums();
+    this.initFunctions();
+    this.initHooks();
+    this.initObjects();
+    this.initVariables();
+  }
 
-	getObject(name: string): KAGObject | null {
-		for (const obj of this.objects) {
-			if (obj.name === name) {
-				return obj;
-			}
-		}
-		return null;
-	}
+  getObject(name: string): KAGObject | null {
+    for (const obj of this.objects) {
+      if (obj.name === name) {
+        return obj;
+      }
+    }
+    return null;
+  }
 
-	getFunction(namespace: string | null, name: string): Func | null {
-		const key = `${namespace || ""}::${name}`;
-		return this.functions[key];
-	}
+  getFunction(namespace: string | null, name: string): Func | null {
+    const key = `${namespace || ""}::${name}`;
+    return this.functions[key];
+  }
 
-	private initObjects() {
-		glob(this._path + "Objects/*.txt", (err, matches) => {
-			if (err) {
-				throw err;
-			}
+  private initObjects() {
+    glob(this._path + "Objects/*.txt", (err, matches) => {
+      if (err) {
+        throw err;
+      }
 
-			for (const path of matches) {
-				const match = /(\w+)\.txt$/.exec(path);
-				if (!match) {
-					continue;
-				}
+      for (const path of matches) {
+        const match = /(\w+)\.txt$/.exec(path);
+        if (!match) {
+          continue;
+        }
 
-				const name = match[1];
-				if (name === "any") {
-					continue;
-				}
+        const name = match[1];
+        if (name === "any") {
+          continue;
+        }
 
-				this.objects.push(new KAGObject(name, path));
-			}
-		});
-	}
+        this.objects.push(new KAGObject(name, path));
+      }
+    });
+  }
 
-	private initHooks() {
-		fs.readFile(this._path + "Hooks.txt", "utf8", (err, data) => {
-			if (err) {
-				return;
-			}
+  private initHooks() {
+    fs.readFile(this._path + "Hooks.txt", "utf8", (err, data) => {
+      if (err) {
+        return;
+      }
 
-			const lines = data.split("\n");
-			for (const line of lines) {
-				const text = line.trim();
-				if (!text || text.startsWith("--")) {
-					continue;
-				}
+      const lines = data.split("\n");
+      for (const line of lines) {
+        const text = line.trim();
+        if (!text || text.startsWith("--")) {
+          continue;
+        }
 
-				const regex = /^(\S+)\s+(\S+)\((.*)\)$/;
-				const match = text.match(regex);
-				if (match) {
-					const returnType = match[1];
-					const name = match[2];
-					const signature = Signature.parse(match[3]);
+        const regex = /^(\S+)\s+(\S+)\((.*)\)$/;
+        const match = text.match(regex);
+        if (match) {
+          const returnType = match[1];
+          const name = match[2];
+          const signature = Signature.parse(match[3]);
 
-					this.hooks.push(new Hook(returnType, name, signature));
-				}
-			}
-		});
-	}
+          this.hooks.push(new Hook(returnType, name, signature));
+        }
+      }
+    });
+  }
 
-	private initVariables() {
-		fs.readFile(this._path + "Variables.txt", "utf8", (err, data) => {
-			if (err) {
-				return;
-			}
+  private initVariables() {
+    fs.readFile(this._path + "Variables.txt", "utf8", (err, data) => {
+      if (err) {
+        return;
+      }
 
-			const lines = data.split("\n");
-			for (const line of lines) {
-				const text = line.trim();
-				if (!text || text.startsWith("--")) {
-					continue;
-				}
+      const lines = data.split("\n");
+      for (const line of lines) {
+        const text = line.trim();
+        if (!text || text.startsWith("--")) {
+          continue;
+        }
 
-				const regex = /^(?:(\S+)::)?(\S+)\s+(\S+)$/;
-				const match = text.match(regex);
-				if (match) {
-					const namespace = match[1] || null;
-					const type = match[2];
-					const name = match[3];
+        const regex = /^(?:(\S+)::)?(\S+)\s+(\S+)$/;
+        const match = text.match(regex);
+        if (match) {
+          const namespace = match[1] || null;
+          const type = match[2];
+          const name = match[3];
 
-					this.variables.push(new Variable(namespace, type, name));
-				}
-			}
-		});
-	}
+          this.variables.push(new Variable(namespace, type, name));
+        }
+      }
+    });
+  }
 
-	private initFunctions() {
-		fs.readFile(this._path + "Functions.txt", "utf8", (err, data) => {
-			if (err) {
-				return;
-			}
+  private initFunctions() {
+    fs.readFile(this._path + "Functions.txt", "utf8", (err, data) => {
+      if (err) {
+        return;
+      }
 
-			const lines = data.split("\n");
-			for (const line of lines) {
-				const text = line.trim();
-				if (!text || text.startsWith("--")) {
-					continue;
-				}
+      const lines = data.split("\n");
+      for (const line of lines) {
+        const text = line.trim();
+        if (!text || text.startsWith("--")) {
+          continue;
+        }
 
-				const regex = /^(\S+)\s+(?:(\S+?)::)?(?:::)?(\S+)\((.*)\)(?:\s+const)?$/;
-				const match = text.match(regex);
-				if (match) {
-					const returnType = match[1];
-					const namespace = match[2] || null;
-					const name = match[3];
-					const signature = Signature.parse(match[4]);
+        const regex =
+          /^(\S+)\s+(?:(\S+?)::)?(?:::)?(\S+)\((.*)\)(?:\s+const)?$/;
+        const match = text.match(regex);
+        if (match) {
+          const returnType = match[1];
+          const namespace = match[2] || null;
+          const name = match[3];
+          const signature = Signature.parse(match[4]);
 
-					const key = `${namespace || ""}::${name}`;
+          const key = `${namespace || ""}::${name}`;
 
-					if (!this.functions.hasOwnProperty(key)) {
-						this.functions[key] = new Func(namespace, returnType, name);
-					}
+          if (!this.functions.hasOwnProperty(key)) {
+            this.functions[key] = new Func(namespace, returnType, name);
+          }
 
-					this.functions[key].addSignature(signature);
-				}
-			}
-		});
-	}
+          this.functions[key].addSignature(signature);
+        }
+      }
+    });
+  }
 
-	private initEnums() {
-		fs.readFile(this._path + "Enums.txt", "utf8", (err, data) => {
-			if (err) {
-				return;
-			}
+  private initEnums() {
+    fs.readFile(this._path + "Enums.txt", "utf8", (err, data) => {
+      if (err) {
+        return;
+      }
 
-			let namespace = "";
+      let namespace = "";
 
-			const lines = data.split("\n");
-			for (const line of lines) {
-				const text = line.trimEnd();
-				if (!text || text.startsWith("--")) {
-					continue;
-				}
+      const lines = data.split("\n");
+      for (const line of lines) {
+        const text = line.trimEnd();
+        if (!text || text.startsWith("--")) {
+          continue;
+        }
 
-				// Remember namespace as we look through the file
-				if (/^\S+$/.test(text)) {
-					namespace = text.trimStart();
-				}
+        // Remember namespace as we look through the file
+        if (/^\S+$/.test(text)) {
+          namespace = text.trimStart();
+        }
 
-				const regex = /^\s+(\S+)$/;
-				const match = text.match(regex);
-				if (match) {
-					const name = match[1];
+        const regex = /^\s+(\S+)$/;
+        const match = text.match(regex);
+        if (match) {
+          const name = match[1];
 
-					this.enums.push(new Enum(namespace, name));
-					continue;
-				}
-			}
-		});
-	}
+          this.enums.push(new Enum(namespace, name));
+          continue;
+        }
+      }
+    });
+  }
 
-	static getManual(): Manual | null {
-		const manualPath = this.getManualPath();
-		return manualPath ? new Manual(manualPath) : null;
-	}
+  static getManual(): Manual | null {
+    const manualPath = this.getManualPath();
+    return manualPath ? new Manual(manualPath) : null;
+  }
 
-	private static getManualPath(): string | null {
-		const kagPath = util.getKAGPath();
-		if (!kagPath) {
-			return null;
-		}
+  private static getManualPath(): string | null {
+    const kagPath = util.getKAGPath();
+    if (!kagPath) {
+      return null;
+    }
 
-		const manualPath = path.join(kagPath, "Manual/interface/");
-		if (!fs.existsSync(manualPath)) {
-			return null;
-		}
+    const manualPath = path.join(kagPath, "Manual/interface/");
+    if (!fs.existsSync(manualPath)) {
+      return null;
+    }
 
-		return manualPath;
-	}
+    return manualPath;
+  }
 }
