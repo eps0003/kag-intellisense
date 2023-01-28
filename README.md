@@ -1,65 +1,58 @@
-# kag-intellisense README
+# KAG IntelliSense for Visual Studio Code
 
-This is the README for your extension "kag-intellisense". After writing up a brief description, we recommend including the following sections.
+This Visual Studio Code extension provides IntelliSense for the King Arthur's Gold scripting manual. The goal is to provide everything a modder needs right inside their IDE and provide an alternative to [KAG Tools](https://github.com/calebchalmers/KAGTools).
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- IntelliSense for the KAG scripting manual
 
-For example if there is an image subfolder under your extension project workspace:
+### Coming soon™
 
-\!\[feature X\]\(images/feature-x.png\)
+- Command Palette commands for common modding tasks
+  - Enabling and disabling mods
+  - Navigating through the KAG scripting manual
+  - Running a KAG server and one or more clients
+- AngelScript language parser for KAG's flavour of AngelScript
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Prerequisites
 
-## Requirements
+- [Node.js](https://nodejs.org/)
+- TypeScript (`npm install -g typescript`)
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+## Setup
 
-## Extension Settings
+1. Navigate to the Visual Studio Code extensions directory
+   - Windows: `cd %USERPROFILE%/.vscode/extensions`
+2. Clone this repo
+3. `npm install`
+4. `npm run compile`
+5. Launch or restart Visual Studio Code and open an AngelScript `.as` file
+6. Acknowledge the prompt that appears asking you to specify the path to your KAG installation
+7. If it doesn't work, refer to the [Troubleshooting](#troubleshooting) section
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+## Update
 
-For example:
+1. `git pull`
+2. Delete `./node_modules` and `./out` directories
+3. `npm install`
+4. `npm run compile`
 
-This extension contributes the following settings:
+## Troubleshooting
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+### AngelScript files are detected as ActionScript files
 
-## Known Issues
+If you have an AngelScript `.as` file open but the IntelliSense is not working, verify that Visual Studio Code has not mistakenly detected the file as an ActionScript file. The language Visual Studio Code has detected is stated to the right of the bottom status bar. The language of the file can be changed by doing the following:
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+1. Open the Command Palette (Ctrl+Shift+P)
+2. "Change Language Mode"
+3. "AngelScript (angelscript)"
 
-## Release Notes
+### KAG path is incorrect
 
-Users appreciate release notes as you update your extension.
+If IntelliSense still isn't working, verify that the KAG path set is to the folder that contains `KAG.exe` rather than the `Base` or `Manual` folders. The path to your KAG installation can be changed by doing the following:
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+1. Open the Command Palette (Ctrl+Shift+P)
+2. "Preferences: Open User Settings"
+3. Search for the "KAG.path" setting
+4. Make the necessary changes
+5. Restart Visual Studio Code
